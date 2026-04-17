@@ -629,3 +629,109 @@ export async function postExpenseToJournal(expenseId: string) {
   });
 }
 
+/**
+ * Tarea: Automatización de "Ingreso a Asiento"
+ * Genera automáticamente un asiento contable a partir de un ingreso finalizado.
+ */
+export async function postIncomeToJournal(incomeId: string) {
+  const supabase = createClient();
+  
+  // 1. Obtener el ingreso completo
+  const { data: income, error: fetchError } = await supabase
+    .from("transactions_income")
+    .select("*")
+    .eq("id", incomeId)
+    .single();
+
+  if (fetchError || !income) return { error: "Ingreso no encontrado" };
+  if (income.status !== "finalized") return { error: "Solo se pueden contabilizar ingresos finalizados" };
+
+  // 2. Validar si ya existe un asiento para este ingreso
+  const { data: existing } = await supabase
+    .from("accounting_entries")
+    .select("id")
+    .eq("reference_id", incomeId)
+    .eq("reference_type", "income")
+    .maybeSingle();
+
+  if (existing) return { success: true, message: "Ya existe un asiento para este ingreso" };
+
+  // 3. Definir cuentas
+  const incomeAccount = income.account_code || "4.1.01"; // Ingresos Ordinarios por defecto
+  const paymentAccount = "1.1.01"; // Caja Principal por defecto (Debe)
+
+  const items = [];
+  
+  // Renglón 1: Abono al Ingreso (Monto Haber) - Naturaleza Crédito
+  items.push({
+    account_code: incomeAccount,
+    account_name: "Ingresos / Ventas",
+    debit: 0,
+    credit: income.amount_usd,
+    debit_ves: 0,
+    credit_ves: income.amount_ves,
+  });
+
+  // Renglón 2: Cargo a Banco/Caja (Monto Debe) - Naturaleza Débito
+  items.push({
+    account_code: paymentAccount,
+    account_name: "Efectivo / Banco",
+    debit: income.amount_usd,
+    credit: 0,
+    debit_ves: income.amount_ves,
+    credit_ves: 0,
+  });
+
+  // 4. Llamar a la lógica de creación de asiento
+  return createManualJournalEntry({
+    date: income.date,
+    description: `Ingreso: ${income.concept} (Recibo: ${income.receipt_number})`,
+    exchange_rate: income.exchange_rate,
+    reference_id: incomeId,
+    reference_type: "income",
+    items: items
+  });
+}
+
+/**
+ * Función: Obtener datos para el Libro Digital (Diario, Mayor, Balance)
+ * Consume la vista SQL view_journal_flat
+ */
+export async function getAccountingData(startDate?: string, endDate?: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const { data: userData } = await supabase
+    .from("users")
+    .select("organization_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!userData?.organization_id) return { error: "Sin organización" };
+
+  let query = supabase
+    .from("view_journal_flat")
+    .select("*")
+    .eq("organization_id", userData.organization_id)
+    .order("date", { ascending: false })
+    .order("entry_number", { ascending: false });
+
+  if (startDate) query = query.gte("date", startDate);
+  if (endDate) query = query.lte("date", endDate);
+
+  const { data, error } = await query;
+
+  if (error) return { error: error.message };
+
+  // Mapear campos para compatibilidad con la interfaz JournalEntryFlat
+  // (La vista usa debit_usd/credit_usd, los componentes esperan debit/credit)
+  const mappedData = (data || []).map(item => ({
+    ...item,
+    debit: item.debit_usd,
+    credit: item.credit_usd
+  }));
+  
+  return { success: true, data: (mappedData || []) as any[] };
+}
+

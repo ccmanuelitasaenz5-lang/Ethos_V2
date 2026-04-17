@@ -2,7 +2,7 @@
  
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isPeriodClosed } from "@/app/actions/accounting";
+import { isPeriodClosed, postIncomeToJournal } from "@/app/actions/accounting";
 import { incomeSchema } from "@/lib/validations/income";
 import { createAuditLog } from "@/lib/security/audit";
 import { logSecurityEvent, isRateLimited } from "@/lib/security/logs";
@@ -78,12 +78,9 @@ export async function createIncome(formData: FormData) {
     newData: values,
   });
  
-  // --- GENERACIÓN AUTOMÁTICA DESACTIVADA (Transición a Libro Diario Manual) ---
-  /*
   if (values.status === "finalized") {
-      // (Misma lógica de asientos que antes pero con values...)
+    await postIncomeToJournal(incomeData.id);
   }
-  */
  
   revalidatePath("/dashboard/ingresos");
   return { success: true };
@@ -155,6 +152,10 @@ export async function updateIncome(id: string, formData: FormData) {
     .eq("id", id);
  
   if (updateError) return { error: updateError.message };
+ 
+  if (values.status === "finalized" && oldRecord.status !== "finalized") {
+    await postIncomeToJournal(id);
+  }
  
   await createAuditLog({
     organizationId: oldRecord.organization_id,
