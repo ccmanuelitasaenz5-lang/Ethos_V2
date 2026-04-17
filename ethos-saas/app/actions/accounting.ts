@@ -729,7 +729,8 @@ export async function getAccountingData(startDate?: string, endDate?: string) {
   const mappedData = (data || []).map(item => ({
     ...item,
     debit: item.debit_usd,
-    credit: item.credit_usd
+    credit: item.credit_usd,
+    description: item.description || item.entry_description // Soporte para ambos nombres
   }));
   
   return { success: true, data: (mappedData || []) as any[] };

@@ -1,5 +1,7 @@
 'use client'
 
+export const revalidate = 0;
+
 import { useEffect, useState, useCallback } from 'react'
 import { getAccountingData, getActiveAccounts } from '@/app/actions/accounting'
 import { JournalEntryFlat } from '@/types/database'

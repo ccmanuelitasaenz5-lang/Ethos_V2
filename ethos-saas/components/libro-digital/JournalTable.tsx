@@ -89,11 +89,12 @@ export default function JournalTable({ entries, organizationName = 'Organizació
                     <button onClick={handleExport} className="flex-1 sm:flex-none inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white hover:bg-gray-50">
                         <ArrowDownTrayIcon className="h-5 w-5 mr-2 text-green-600" /> Excel
                     </button>
-                    {onNewEntry && (
-                        <button onClick={onNewEntry} className="flex-1 sm:flex-none bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-primary-700">
-                            + Nuevo Asiento
-                        </button>
-                    )}
+                    <button 
+                        onClick={onNewEntry} 
+                        className="flex-1 sm:flex-none bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-primary-700 active:scale-95 transition-all"
+                    >
+                        + Nuevo Asiento
+                    </button>
                 </div>
             </div>
 
