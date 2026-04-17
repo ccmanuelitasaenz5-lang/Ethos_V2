@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getTodayRate } from "@/lib/exchange";
 
 // Definimos los tipos de cuentas permitidos segÃºn la estructura contable
 export type AccountType =
@@ -773,4 +774,26 @@ export async function syncAccountingRecords() {
   return { success: true, syncedCount };
 }
 
+/**
+ * Obtiene la última tasa de cambio BCV registrada en el sistema.
+ * Usada por el modal de asiento manual para pre-cargar la tasa del día.
+ */
+export async function getLatestExchangeRate(): Promise<{ rate: number; source: string }> {
+  const supabase = createClient();
 
+  // Buscar la tasa más reciente en la BD
+  const { data } = await supabase
+    .from("exchange_rates")
+    .select("rate_usd_ves, date, source")
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (data) {
+    return { rate: data.rate_usd_ves, source: `BCV ${data.date}` };
+  }
+
+  // Si no hay nada en BD, obtener la tasa de hoy
+  const rate = await getTodayRate();
+  return { rate, source: "BCV (hoy)" };
+}
