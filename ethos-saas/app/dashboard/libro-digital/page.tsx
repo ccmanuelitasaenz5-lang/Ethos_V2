@@ -1,175 +1,76 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import JournalTable from '@/components/libro-digital/JournalTable'
-import LedgerTable from '@/components/libro-digital/LedgerTable'
-import TrialBalance from '@/components/libro-digital/TrialBalance'
-import ManualEntryModal from '@/components/libro-digital/ManualEntryModal'
-import { JournalEntry, TransactionAccount } from '@/types/database'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { createManualJournalEntry } from '@/app/actions/accounting'
-import { toast } from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 export default function LibroDigitalPage() {
-    const [entries, setEntries] = useState<JournalEntry[]>([])
-    const [accounts, setAccounts] = useState<TransactionAccount[]>([])
-    const [isModalOpen, setIsModalOpen] = useState(false)
-    const [orgName, setOrgName] = useState('Organización')
-    const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'diario' | 'mayor' | 'balance'>('diario')
+    const [status, setStatus] = useState('Iniciando diagnóstico...')
+    const [userEmail, setUserEmail] = useState<string | null>(null)
+    const router = useRouter()
 
     useEffect(() => {
-        async function fetchData() {
+        async function checkAuth() {
             const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
+            
+            setStatus('1. Verificando sesión en el navegador...')
+            
+            // Intento 1: Obtener usuario directamente
+            const { data: { user }, error } = await supabase.auth.getUser()
 
-            const { data: userData } = await supabase
-                .from('users')
-                .select('organization_id')
-                .eq('id', user?.id)
-                .single()
-
-            if (userData?.organization_id) {
-                // Fetch organization name
-                const { data: orgData } = await supabase
-                    .from('organizations')
-                    .select('name')
-                    .eq('id', userData.organization_id)
-                    .single()
-
-                if (orgData) setOrgName(orgData.name)
-
-                const { data } = await supabase
-                    .from('journal_entries')
-                    .select('*')
-                    .eq('organization_id', userData.organization_id)
-                    .order('date', { ascending: false })
-                    .order('entry_number', { ascending: false })
-
-                setEntries(data || [])
-
-                const { data: accountsData } = await supabase
-                    .from('accounting_accounts')
-                    .select('*')
-                    .eq('organization_id', userData.organization_id)
-                    .order('code', { ascending: true })
-
-                setAccounts(accountsData as TransactionAccount[] || [])
+            if (error || !user) {
+                setStatus(`❌ Error de Auth: ${error?.message || 'Usuario no encontrado'}`)
+                
+                // Si falla, intentamos refrescar la sesión
+                setStatus('Intentando refrescar sesión...')
+                const { data: { session } } = await supabase.auth.getSession()
+                
+                if (!session) {
+                    setStatus('❌ Sesión inválida o expirada. Redirigiendo al login...')
+                    setTimeout(() => {
+                        router.push('/login?redirectTo=/dashboard/libro-digital')
+                    }, 2000)
+                    return
+                }
+                setUserEmail(session.user.email)
+                setStatus(`✅ Sesión recuperada: ${session.user.email}`)
+            } else {
+                setUserEmail(user.email)
+                setStatus(`✅ Usuario autenticado: ${user.email}`)
             }
-            setLoading(false)
         }
 
-        fetchData()
-    }, [])
-
-    if (loading) {
-        return (
-            <div className="p-8 text-center bg-white shadow-lg rounded-xl flex flex-col items-center justify-center space-y-4">
-                <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-                <p className="text-gray-500 font-medium">Cargando libros contables...</p>
-            </div>
-        )
-    }
+        checkAuth()
+    }, [router])
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-end flex-wrap gap-4 px-2 sm:px-0">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Libro Digital</h1>
-                    <p className="mt-1 text-sm text-gray-600">
-                        Contabilidad por Partida Doble - Libro Diario y Mayor con Balance de Comprobación
-                    </p>
-                </div>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="inline-flex items-center px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md hover:shadow-lg active:scale-95"
-                >
-                    + Nuevo Asiento Contable
-                </button>
-            </div>
+        <div className="min-h-screen bg-gray-50 p-8 flex flex-col items-center justify-center">
+            <div className="bg-white p-8 rounded-xl shadow-lg max-w-2xl w-full border border-gray-200">
+                <h1 className="text-3xl font-bold text-gray-900 mb-6">🔍 Diagnóstico de Autenticación</h1>
+                
+                <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm font-medium text-blue-800">Estado actual:</p>
+                        <p className="text-lg font-mono text-blue-900 mt-1">{status}</p>
+                    </div>
 
-            <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
-                <div className="border-b border-gray-200 bg-gray-50/50">
-                    <nav className="flex px-4 overflow-x-auto no-scrollbar">
-                        <TabButton
-                            active={activeTab === 'diario'}
-                            onClick={() => setActiveTab('diario')}
-                            label="Libro Diario"
-                            icon="📖"
-                        />
-                        <TabButton
-                            active={activeTab === 'mayor'}
-                            onClick={() => setActiveTab('mayor')}
-                            label="Libro Mayor"
-                            icon="📒"
-                        />
-                        <TabButton
-                            active={activeTab === 'balance'}
-                            onClick={() => setActiveTab('balance')}
-                            label="Balance de Comprobación"
-                            icon="⚖️"
-                        />
-                    </nav>
-                </div>
+                    {userEmail && (
+                        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                            <p className="text-sm font-medium text-green-800">Usuario detectado:</p>
+                            <p className="text-lg font-mono text-green-900 mt-1">{userEmail}</p>
+                        </div>
+                    )}
 
-                <div className="p-4 sm:p-8 min-h-[400px]">
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {activeTab === 'diario' && (
-                            <JournalTable 
-                                entries={entries} 
-                                organizationName={orgName} 
-                                onNewEntry={() => setIsModalOpen(true)} 
-                            />
-                        )}
-                        {activeTab === 'mayor' && (
-                            <LedgerTable 
-                                entries={entries} 
-                                onNewEntry={() => setIsModalOpen(true)}
-                            />
-                        )}
-                        {activeTab === 'balance' && (
-                            <TrialBalance 
-                                entries={entries} 
-                                onNewEntry={() => setIsModalOpen(true)}
-                            />
-                        )}
+                    <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-600">
+                        <p><strong>Interpretación:</strong></p>
+                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                            <li>Si ves <strong>✅ Usuario autenticado</strong>: El problema NO es la sesión. Es un error interno al cargar las tablas.</li>
+                            <li>Si te <strong>redirige al login</strong>: Tu sesión expiró. Vuelve a loguearte y prueba de nuevo.</li>
+                            <li>Si se queda en <strong>❌ Sesión inválida</strong>: Hay un problema con las cookies o el dominio local.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
-
-            <ManualEntryModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                accounts={accounts}
-                onSave={async (payload) => {
-                    const res = await createManualJournalEntry(payload)
-                    if (res?.error) {
-                        return { error: res.error }
-                    } else {
-                        toast.success('Asiento registrado con éxito')
-                        setTimeout(() => window.location.reload(), 1000)
-                        return { success: true }
-                    }
-                }}
-            />
         </div>
-    )
-}
-
-function TabButton({ active, onClick, label, icon }: { active: boolean, onClick: () => void, label: string, icon: string }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`
-        px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap
-        ${active
-                    ? 'border-primary-600 text-primary-600 bg-white'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
-                }
-      `}
-        >
-            <span className="text-lg">{icon}</span>
-            {label}
-        </button>
     )
 }

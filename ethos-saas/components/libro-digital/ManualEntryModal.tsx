@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { PlusIcon, TrashIcon, XMarkIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
-import { TransactionAccount } from '@/types/database'
+import { PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { getActiveAccounts } from '@/app/actions/accounting' // Importamos la nueva acción
+import type { AccountingAccount } from '@/types/database'
 import { format } from 'date-fns'
+import toast from 'react-hot-toast'
 
 interface ManualEntryModalProps {
     isOpen: boolean
     onClose: () => void
-    accounts: TransactionAccount[]
     onSave: (payload: any) => Promise<{ success?: boolean; error?: string }>
 }
 
@@ -23,7 +24,7 @@ interface JournalLine {
     credit_ves: number
 }
 
-export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: ManualEntryModalProps) {
+export default function ManualEntryModal({ isOpen, onClose, onSave }: ManualEntryModalProps) {
     const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
     const [description, setDescription] = useState('')
     const [exchangeRate, setExchangeRate] = useState<number>(0)
@@ -31,8 +32,39 @@ export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: 
         { id: '1', account_code: '', account_name: '', description: '', debit: 0, credit: 0, debit_ves: 0, credit_ves: 0 },
         { id: '2', account_code: '', account_name: '', description: '', debit: 0, credit: 0, debit_ves: 0, credit_ves: 0 }
     ])
+    
+    // Nuevos estados para manejar la carga de cuentas
+    const [accounts, setAccounts] = useState<AccountingAccount[]>([])
+    const [loadingAccounts, setLoadingAccounts] = useState(false)
+    
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Cargar cuentas activas cuando el modal se abre
+    useEffect(() => {
+        if (isOpen) {
+            loadAccounts()
+        }
+    }, [isOpen])
+
+    const loadAccounts = async () => {
+        setLoadingAccounts(true)
+        try {
+            const result = await getActiveAccounts()
+            if (result.error) {
+                toast.error(result.error)
+                setAccounts([])
+            } else {
+                setAccounts(result.data || [])
+            }
+        } catch (err) {
+            console.error('Error cargando cuentas:', err)
+            toast.error('No se pudieron cargar las cuentas contables')
+            setAccounts([])
+        } finally {
+            setLoadingAccounts(false)
+        }
+    }
 
     // Solo cuentas de movimiento
     const movementAccounts = accounts.filter(a => a.is_movement)
@@ -113,7 +145,7 @@ export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: 
             items: lines.filter(l => l.account_code && (l.debit > 0 || l.credit > 0 || l.debit_ves > 0 || l.credit_ves > 0)).map(line => ({
                 account_code: line.account_code,
                 account_name: line.account_name,
-                description: line.description || description, // Fallback to global description
+                description: line.description || description,
                 debit: Number(line.debit) || 0,
                 credit: Number(line.credit) || 0,
                 debit_ves: Number(line.debit_ves) || 0,
@@ -126,7 +158,9 @@ export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: 
         setIsSubmitting(false)
         if (res.error) {
             setError(res.error)
+            toast.error(res.error)
         } else {
+            toast.success('Asiento registrado correctamente')
             onClose()
             // Reset state
             setLines([
@@ -165,7 +199,7 @@ export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: 
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tasa de Cambio (BVC)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tasa de Cambio (BCV)</label>
                             <div className="relative rounded-md shadow-sm">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <span className="text-gray-500 sm:text-sm">Bs.</span>
@@ -210,78 +244,92 @@ export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: 
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {lines.map((line, index) => (
-                                        <tr key={line.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-2">
-                                                <select
-                                                    value={line.account_code}
-                                                    onChange={(e) => handleLineChange(line.id, 'account_code', e.target.value)}
-                                                    required
-                                                    className="w-full text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5"
-                                                >
-                                                    <option value="">Selecciona cuenta...</option>
-                                                    {movementAccounts.map(a => (
-                                                        <option key={a.id} value={a.code}>{a.code} - {a.name}</option>
-                                                    ))}
-                                                </select>
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                <input
-                                                    type="text"
-                                                    value={line.description}
-                                                    onChange={(e) => handleLineChange(line.id, 'description', e.target.value)}
-                                                    placeholder="Línea opcional"
-                                                    className="w-full text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={line.debit || ''}
-                                                    onChange={(e) => handleLineChange(line.id, 'debit', e.target.value)}
-                                                    className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-green-700"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-2">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={line.credit || ''}
-                                                    onChange={(e) => handleLineChange(line.id, 'credit', e.target.value)}
-                                                    className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-red-700"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-2 bg-blue-50/30">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={line.debit_ves || ''}
-                                                    onChange={(e) => handleLineChange(line.id, 'debit_ves', e.target.value)}
-                                                    className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-green-700"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-2 bg-blue-50/30">
-                                                <input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={line.credit_ves || ''}
-                                                    onChange={(e) => handleLineChange(line.id, 'credit_ves', e.target.value)}
-                                                    className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-red-700"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-2 text-right">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveLine(line.id)}
-                                                    disabled={lines.length <= 2}
-                                                    className={`p-1 rounded ${lines.length <= 2 ? 'text-gray-300' : 'text-red-500 hover:bg-red-50'}`}
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                </button>
+                                    {loadingAccounts ? (
+                                        <tr>
+                                            <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                                                Cargando plan de cuentas...
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : movementAccounts.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="px-4 py-8 text-center text-red-500">
+                                                No hay cuentas contables activas configuradas. Ve a Configuración para crearlas.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        lines.map((line, index) => (
+                                            <tr key={line.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-2">
+                                                    <select
+                                                        value={line.account_code}
+                                                        onChange={(e) => handleLineChange(line.id, 'account_code', e.target.value)}
+                                                        required
+                                                        className="w-full text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5"
+                                                    >
+                                                        <option value="">Selecciona cuenta...</option>
+                                                        {movementAccounts.map(a => (
+                                                            <option key={a.id} value={a.code}>{a.code} - {a.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <input
+                                                        type="text"
+                                                        value={line.description}
+                                                        onChange={(e) => handleLineChange(line.id, 'description', e.target.value)}
+                                                        placeholder="Línea opcional"
+                                                        className="w-full text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={line.debit || ''}
+                                                        onChange={(e) => handleLineChange(line.id, 'debit', e.target.value)}
+                                                        className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-green-700"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-2">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={line.credit || ''}
+                                                        onChange={(e) => handleLineChange(line.id, 'credit', e.target.value)}
+                                                        className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-red-700"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-2 bg-blue-50/30">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={line.debit_ves || ''}
+                                                        onChange={(e) => handleLineChange(line.id, 'debit_ves', e.target.value)}
+                                                        className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-green-700"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-2 bg-blue-50/30">
+                                                    <input
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={line.credit_ves || ''}
+                                                        onChange={(e) => handleLineChange(line.id, 'credit_ves', e.target.value)}
+                                                        className="w-full text-right text-sm border-gray-300 border-0 border-b border-transparent hover:border-gray-300 focus:border-primary-500 focus:ring-0 bg-transparent px-0 py-1.5 text-red-700"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-2 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveLine(line.id)}
+                                                        disabled={lines.length <= 2}
+                                                        className={`p-1 rounded ${lines.length <= 2 ? 'text-gray-300' : 'text-red-500 hover:bg-red-50'}`}
+                                                    >
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                                 <tfoot className="bg-gray-50 border-t border-gray-200">
                                     <tr>
@@ -289,7 +337,8 @@ export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: 
                                             <button
                                                 type="button"
                                                 onClick={handleAddLine}
-                                                className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 gap-1"
+                                                disabled={loadingAccounts || movementAccounts.length === 0}
+                                                className="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <PlusIcon className="w-4 h-4" /> Agregar línea
                                             </button>
@@ -352,7 +401,7 @@ export default function ManualEntryModal({ isOpen, onClose, accounts, onSave }: 
                     <button
                         form="journal-entry-form"
                         type="submit"
-                        disabled={!isBalanced || isSubmitting || totalDebitUSD === 0}
+                        disabled={!isBalanced || isSubmitting || totalDebitUSD === 0 || loadingAccounts || movementAccounts.length === 0}
                         className="inline-flex items-center px-6 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                         {isSubmitting ? 'Guardando...' : 'Asentar en Diario'}

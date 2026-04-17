@@ -1,10 +1,10 @@
 'use client'
 
-import { JournalEntry } from '@/types/database'
+import { JournalEntryFlat } from '@/types/database'
 import { useState } from 'react'
 
 interface LedgerTableProps {
-    entries: JournalEntry[]
+    entries: JournalEntryFlat[]
     onNewEntry?: () => void
 }
 
@@ -22,9 +22,19 @@ export default function LedgerTable({ entries, onNewEntry }: LedgerTableProps) {
         }
         acc[entry.account_code].debit += entry.debit
         acc[entry.account_code].credit += entry.credit
-        // Balance calculation (Assets/Expenses: Debit - Credit, Liabilities/Equity/Income: Credit - Debit)
-        // Simplified: Debit - Credit (Trial Balance style)
-        acc[entry.account_code].balance = acc[entry.account_code].debit - acc[entry.account_code].credit
+        
+        // Lógica de Naturaleza de Cuenta:
+        // Activo (1) o Gasto (5): Debe - Haber
+        // Pasivo (2), Patrimonio (3) o Ingreso (4): Haber - Debe
+        const isDebitNature = entry.account_code.startsWith('1') || entry.account_code.startsWith('5');
+        
+        if (isDebitNature) {
+            acc[entry.account_code].balance = acc[entry.account_code].debit - acc[entry.account_code].credit;
+            acc[entry.account_code].nature = 'Dt';
+        } else {
+            acc[entry.account_code].balance = acc[entry.account_code].credit - acc[entry.account_code].debit;
+            acc[entry.account_code].nature = 'Cr';
+        }
         return acc
     }, {} as Record<string, any>)
 
@@ -73,7 +83,7 @@ export default function LedgerTable({ entries, onNewEntry }: LedgerTableProps) {
                                 <td className="px-4 py-3 text-right font-mono">${acc.credit.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
                                 <td className={`px-4 py-3 text-right font-bold font-mono ${acc.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     ${Math.abs(acc.balance).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
-                                    <span className="text-[10px] ml-1">{acc.balance >= 0 ? 'Dt' : 'Cr'}</span>
+                                    <span className="text-[10px] ml-1">{acc.nature}</span>
                                 </td>
                             </tr>
                         ))
