@@ -736,3 +736,47 @@ export async function getAccountingData(startDate?: string, endDate?: string) {
   return { success: true, data: (mappedData || []) as any[] };
 }
 
+/**
+ * Función: Sincronización Retroactiva
+ * Busca transacciones finalizadas que no tienen asiento y los genera.
+ */
+export async function syncAccountingRecords() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  // 1. Obtener gastos finalizados sin asiento
+  const { data: expenses } = await supabase
+    .from("transactions_expense")
+    .select("id")
+    .eq("status", "finalized");
+
+  // 2. Obtener ingresos finalizados sin asiento
+  const { data: incomes } = await supabase
+    .from("transactions_income")
+    .select("id")
+    .eq("status", "finalized");
+
+  let syncedCount = 0;
+
+  // Procesar Gastos
+  if (expenses) {
+    for (const exp of expenses) {
+      const res = await postExpenseToJournal(exp.id);
+      if (res.success) syncedCount++;
+    }
+  }
+
+  // Procesar Ingresos
+  if (incomes) {
+    for (const inc of incomes) {
+      const res = await postIncomeToJournal(inc.id);
+      if (res.success) syncedCount++;
+    }
+  }
+
+  revalidatePath("/dashboard/libro-digital");
+  return { success: true, syncedCount };
+}
+
+
