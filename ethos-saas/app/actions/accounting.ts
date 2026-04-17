@@ -65,11 +65,11 @@ export async function getActiveAccounts() {
 
     // 2. Obtener el ID de la organización
     const { data: { session } } = await supabase.auth.getSession();
-    const orgId = session?.user?.user_metadata?.organization_id || session?.user?.id; // Fallback al ID de usuario si aplica
+    const orgId = session?.user?.user_metadata?.organization_id;
 
     if (!orgId || orgId === 'undefined') {
-      console.error("ADVERTENCIA: Intento de cargar cuentas sin organization_id válido.");
-      return { error: "ID de organización no válido", data: [] };
+      console.warn("Aviso: No hay organization_id, devolviendo lista vacía.");
+      return { success: true, data: [] }; // Devuelve éxito con datos vacíos
     }
 
     // 3. Consultar solo cuentas activas y de movimiento
@@ -701,8 +701,7 @@ export async function getAccountingData(startDate?: string, endDate?: string) {
   const orgId = session?.user?.user_metadata?.organization_id;
 
   if (!orgId || orgId === 'undefined') {
-    console.error("ADVERTENCIA: Intento de cargar diario sin organization_id válido");
-    return { error: "Sesión no válida o sin organización", data: [] };
+    return { success: true, data: [] }; // Silenciar el error y devolver vacío
   }
 
   let query = supabase

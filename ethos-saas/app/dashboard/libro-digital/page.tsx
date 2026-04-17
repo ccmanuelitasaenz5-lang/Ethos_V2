@@ -104,55 +104,63 @@ export default function LibroDigitalPage() {
             </div>
 
             {/* SOLO EL CONTENIDO DEPENDE DEL LOADING */}
-            {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 animate-pulse">
-                    <div className="w-12 h-12 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin mb-4"></div>
-                    <p className="text-gray-500 font-medium">Cargando registros contables...</p>
-                </div>
-            ) : entries.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-                    <p className="text-gray-400 font-medium mb-4 text-center px-4">
-                        No hay asientos registrados para esta organización.<br/>
-                        Prueba el botón "Sincronizar" para generar asientos desde ingresos/gastos existentes.
-                    </p>
-                    <button 
-                        onClick={handleSync}
-                        className="text-primary-600 font-bold hover:underline flex items-center gap-2"
-                    >
-                        Intentar sincronización retroactiva
-                    </button>
-                </div>
-            ) : (
-                <Tabs defaultValue="diario" className="w-full">
-                    <TabsList className="bg-gray-100 p-1 rounded-xl mb-6">
-                        <TabsTrigger value="diario" className="rounded-lg px-8">Libro Diario</TabsTrigger>
-                        <TabsTrigger value="mayor" className="rounded-lg px-8">Libro Mayor</TabsTrigger>
-                        <TabsTrigger value="balance" className="rounded-lg px-8">Balance Comprobación</TabsTrigger>
-                    </TabsList>
+            <div className="min-h-[400px]">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 animate-pulse">
+                        <div className="w-12 h-12 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 font-medium">Cargando registros contables...</p>
+                    </div>
+                ) : entries.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+                        <p className="text-gray-400 font-medium mb-4 text-center px-4">
+                            No hay asientos registrados para esta organización.<br/>
+                            Prueba el botón "Sincronizar" para generar asientos desde ingresos/gastos existentes.
+                        </p>
+                        <button 
+                            onClick={handleSync}
+                            className="text-primary-600 font-bold hover:underline flex items-center gap-2"
+                        >
+                            Intentar sincronización retroactiva
+                        </button>
+                    </div>
+                ) : (
+                    <Tabs defaultValue="diario" className="w-full">
+                        <TabsList className="bg-gray-100 p-1 rounded-xl mb-6">
+                            <TabsTrigger value="diario" className="rounded-lg px-8">Libro Diario</TabsTrigger>
+                            <TabsTrigger value="mayor" className="rounded-lg px-8">Libro Mayor</TabsTrigger>
+                            <TabsTrigger value="balance" className="rounded-lg px-8">Balance Comprobación</TabsTrigger>
+                        </TabsList>
 
-                    <TabsContent value="diario" className="mt-0 focus-visible:ring-0">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
-                            <JournalTable 
-                                entries={entries} 
-                                onNewEntry={handleNewEntry}
-                                organizationName="ETHOS"
-                            />
-                        </div>
-                    </TabsContent>
+                        <TabsContent value="diario" className="mt-0 focus-visible:ring-0">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                                <JournalTable 
+                                    entries={entries} 
+                                    onNewEntry={handleNewEntry}
+                                    organizationName="ETHOS"
+                                />
+                            </div>
+                        </TabsContent>
 
-                    <TabsContent value="mayor" className="mt-0 focus-visible:ring-0">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
-                            <LedgerTable entries={entries} onNewEntry={handleNewEntry} />
-                        </div>
-                    </TabsContent>
+                        <TabsContent value="mayor" className="mt-0 focus-visible:ring-0">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                                <LedgerTable 
+                                    entries={entries} 
+                                    organizationName="ETHOS"
+                                />
+                            </div>
+                        </TabsContent>
 
-                    <TabsContent value="balance" className="mt-0 focus-visible:ring-0">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
-                            <TrialBalance entries={entries} onNewEntry={handleNewEntry} />
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            )}
+                        <TabsContent value="balance" className="mt-0 focus-visible:ring-0">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                                <TrialBalance 
+                                    entries={entries} 
+                                    organizationName="ETHOS"
+                                />
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                )}
+            </div>
 
             <ManualEntryModal 
                 isOpen={isModalOpen}
@@ -162,4 +170,4 @@ export default function LibroDigitalPage() {
             />
         </div>
     )
-}
+}
