@@ -64,16 +64,11 @@ export async function getActiveAccounts() {
     }
 
     // 2. Obtener el ID de la organización
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("organization_id")
-      .eq("id", user.id)
-      .single();
+    const { data: { session } } = await supabase.auth.getSession();
+    const orgId = session?.user?.user_metadata?.organization_id || session?.user?.id; // Fallback al ID de usuario si aplica
 
-    const orgId = userData?.organization_id;
-
-    if (userError || !orgId || orgId === 'undefined') {
-      console.error("ADVERTENCIA: Intento de cargar cuentas sin organization_id válido:", userError);
+    if (!orgId || orgId === 'undefined') {
+      console.error("ADVERTENCIA: Intento de cargar cuentas sin organization_id válido.");
       return { error: "ID de organización no válido", data: [] };
     }
 
@@ -702,20 +697,12 @@ export async function postIncomeToJournal(incomeId: string) {
  */
 export async function getAccountingData(startDate?: string, endDate?: string) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
-
-  const { data: userData } = await supabase
-    .from("users")
-    .select("organization_id")
-    .eq("id", user.id)
-    .single();
-
-  const orgId = userData?.organization_id;
+  const { data: { session } } = await supabase.auth.getSession();
+  const orgId = session?.user?.user_metadata?.organization_id;
 
   if (!orgId || orgId === 'undefined') {
     console.error("ADVERTENCIA: Intento de cargar diario sin organization_id válido");
-    return { error: "ID de organización no válido", data: [] };
+    return { error: "Sesión no válida o sin organización", data: [] };
   }
 
   let query = supabase

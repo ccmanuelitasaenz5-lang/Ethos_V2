@@ -78,7 +78,7 @@ export default function LibroDigitalPage() {
 
     return (
         <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
-            {/* Cabecera Estática: Siempre visible para evitar que desaparezca el botón */}
+            {/* CABECERA ESTÁTICA: SIEMPRE VISIBLE */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Libro Digital</h1>
@@ -103,6 +103,7 @@ export default function LibroDigitalPage() {
                 </div>
             </div>
 
+            {/* SOLO EL CONTENIDO DEPENDE DEL LOADING */}
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100 animate-pulse">
                     <div className="w-12 h-12 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin mb-4"></div>
