@@ -63,15 +63,18 @@ export async function getActiveAccounts() {
       return { error: "Usuario no autenticado", data: [] };
     }
 
-    // 2. Obtener el ID de la organizaciÃ³n
+    // 2. Obtener el ID de la organización
     const { data: userData, error: userError } = await supabase
       .from("users")
       .select("organization_id")
       .eq("id", user.id)
       .single();
 
-    if (userError || !userData?.organization_id) {
-      return { error: "Usuario sin organizaciÃ³n asignada", data: [] };
+    const orgId = userData?.organization_id;
+
+    if (userError || !orgId || orgId === 'undefined') {
+      console.error("ADVERTENCIA: Intento de cargar cuentas sin organization_id válido:", userError);
+      return { error: "ID de organización no válido", data: [] };
     }
 
     // 3. Consultar solo cuentas activas y de movimiento
@@ -708,7 +711,12 @@ export async function getAccountingData(startDate?: string, endDate?: string) {
     .eq("id", user.id)
     .single();
 
-  if (!userData?.organization_id) return { error: "Sin organización" };
+  const orgId = userData?.organization_id;
+
+  if (!orgId || orgId === 'undefined') {
+    console.error("ADVERTENCIA: Intento de cargar diario sin organization_id válido");
+    return { error: "ID de organización no válido", data: [] };
+  }
 
   let query = supabase
     .from("view_journal_flat")

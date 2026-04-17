@@ -78,6 +78,7 @@ export default function LibroDigitalPage() {
 
     return (
         <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+            {/* Cabecera Estática: Siempre visible para evitar que desaparezca el botón */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Libro Digital</h1>
@@ -110,7 +111,7 @@ export default function LibroDigitalPage() {
             ) : entries.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
                     <p className="text-gray-400 font-medium mb-4 text-center px-4">
-                        No hay asientos registrados en la vista <code className="bg-gray-100 px-1 rounded text-primary-700 font-bold">view_journal_flat</code>.<br/>
+                        No hay asientos registrados para esta organización.<br/>
                         Prueba el botón "Sincronizar" para generar asientos desde ingresos/gastos existentes.
                     </p>
                     <button 
