@@ -7,7 +7,6 @@ import JournalTable from '@/components/libro-digital/JournalTable'
 import LedgerTable from '@/components/libro-digital/LedgerTable'
 import TrialBalance from '@/components/libro-digital/TrialBalance'
 import ManualEntryModal from '@/components/libro-digital/ManualEntryModal'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { ArrowPathIcon, PlusIcon } from '@heroicons/react/24/outline'
@@ -19,9 +18,9 @@ export default function LibroDigitalPage() {
     const [syncing, setSyncing] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [dataError, setDataError] = useState<string | null>(null)
+    const [activeTab, setActiveTab] = useState<'diario' | 'mayor' | 'balance'>('diario')
     const router = useRouter()
 
-    // ─── Carga de datos — una sola definición ─────────────────────────────────
     const loadData = useCallback(async () => {
         setLoading(true)
         setDataError(null)
@@ -52,7 +51,6 @@ export default function LibroDigitalPage() {
         loadData()
     }, [loadData])
 
-    // ─── Sincronización automática ────────────────────────────────────────────
     const handleSync = async () => {
         setSyncing(true)
         try {
@@ -70,7 +68,6 @@ export default function LibroDigitalPage() {
         }
     }
 
-    // ─── Modal handlers ───────────────────────────────────────────────────────
     const handleNewEntry = () => setIsModalOpen(true)
 
     const handleEntryCreated = () => {
@@ -79,11 +76,10 @@ export default function LibroDigitalPage() {
         router.refresh()
     }
 
-    // ─── Render ───────────────────────────────────────────────────────────────
     return (
         <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
 
-            {/* ── CABECERA: SIEMPRE VISIBLE, sin depender de loading ni de entries ── */}
+            {/* Cabecera */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Libro Digital</h1>
@@ -108,7 +104,7 @@ export default function LibroDigitalPage() {
                 </div>
             </div>
 
-            {/* ── ÁREA DE CONTENIDO ─────────────────────────────────────────────────── */}
+            {/* Contenido */}
             <div className="min-h-[400px]">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100">
@@ -116,58 +112,64 @@ export default function LibroDigitalPage() {
                         <p className="text-gray-500 font-medium">Cargando libro contable...</p>
                     </div>
                 ) : dataError ? (
-                    /* Error de organización / sesión — no rompe el componente */
                     <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-amber-200">
                         <div className="text-4xl mb-3">⚠️</div>
                         <p className="text-amber-700 font-semibold text-lg mb-1">No se pudieron cargar los datos</p>
                         <p className="text-gray-500 text-sm max-w-md text-center">{dataError}</p>
-                        <button
-                            onClick={loadData}
-                            className="mt-6 px-5 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors"
-                        >
+                        <button onClick={loadData} className="mt-6 px-5 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors">
                             Reintentar
                         </button>
                     </div>
                 ) : (
-                    <Tabs defaultValue="diario" className="w-full">
-                        <TabsList className="bg-gray-100 p-1 rounded-xl mb-6 flex overflow-x-auto">
-                            <TabsTrigger value="diario" className="rounded-lg px-8 flex-1 sm:flex-none">Libro Diario</TabsTrigger>
-                            <TabsTrigger value="mayor"  className="rounded-lg px-8 flex-1 sm:flex-none">Libro Mayor</TabsTrigger>
-                            <TabsTrigger value="balance" className="rounded-lg px-8 flex-1 sm:flex-none">Balance Comprobación</TabsTrigger>
-                        </TabsList>
+                    <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+                        <div className="border-b border-gray-200 bg-gray-50/50">
+                            <nav className="flex px-4 overflow-x-auto">
+                                <TabButton
+                                    active={activeTab === 'diario'}
+                                    onClick={() => setActiveTab('diario')}
+                                    label="Libro Diario"
+                                    icon="📖"
+                                />
+                                <TabButton
+                                    active={activeTab === 'mayor'}
+                                    onClick={() => setActiveTab('mayor')}
+                                    label="Libro Mayor"
+                                    icon="📒"
+                                />
+                                <TabButton
+                                    active={activeTab === 'balance'}
+                                    onClick={() => setActiveTab('balance')}
+                                    label="Balance de Comprobación"
+                                    icon="⚖️"
+                                />
+                            </nav>
+                        </div>
 
-                        <TabsContent value="diario" className="mt-0 focus-visible:ring-0">
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                        <div className="p-4 sm:p-8">
+                            {activeTab === 'diario' && (
                                 <JournalTable
                                     entries={entries}
                                     onNewEntry={handleNewEntry}
                                     organizationName="ETHOS"
                                 />
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="mayor" className="mt-0 focus-visible:ring-0">
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                            )}
+                            {activeTab === 'mayor' && (
                                 <LedgerTable
                                     entries={entries}
                                     organizationName="ETHOS"
                                 />
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="balance" className="mt-0 focus-visible:ring-0">
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                            )}
+                            {activeTab === 'balance' && (
                                 <TrialBalance
                                     entries={entries}
                                     organizationName="ETHOS"
                                 />
-                            </div>
-                        </TabsContent>
-                    </Tabs>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
 
-            {/* ── MODAL ASIENTO MANUAL ──────────────────────────────────────────────── */}
             <ManualEntryModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -175,5 +177,23 @@ export default function LibroDigitalPage() {
                 accounts={accounts}
             />
         </div>
+    )
+}
+
+function TabButton({ active, onClick, label, icon }: { active: boolean, onClick: () => void, label: string, icon: string }) {
+    return (
+        <button
+            onClick={onClick}
+            className={`
+                px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap
+                ${active
+                    ? 'border-primary-600 text-primary-600 bg-white'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
+                }
+            `}
+        >
+            <span className="text-lg">{icon}</span>
+            {label}
+        </button>
     )
 }
