@@ -8,11 +8,13 @@ import { incomeSchema, IncomeFormValues } from '@/lib/validations/income'
 import { createIncome, updateIncome } from '@/app/actions/income'
 import { toast } from 'react-hot-toast'
 
+import { TransactionIncome, TransactionAccount, Property } from '@/types/database'
+
 interface IncomeFormProps {
     initialRate?: number
-    accounts?: any[]
-    properties?: any[]
-    initialData?: any
+    accounts?: TransactionAccount[]
+    properties?: Property[]
+    initialData?: TransactionIncome
 }
 
 export default function IncomeForm({ initialRate, accounts = [], properties = [], initialData }: IncomeFormProps) {

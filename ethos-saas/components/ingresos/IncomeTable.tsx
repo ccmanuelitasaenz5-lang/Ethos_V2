@@ -11,8 +11,10 @@ import {
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
+import { TransactionIncome } from '@/types/database'
+
 interface IncomeTableProps {
-    incomes: any[]
+    incomes: TransactionIncome[]
     organizationId?: string
     isLoading?: boolean
 }
