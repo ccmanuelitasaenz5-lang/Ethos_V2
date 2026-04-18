@@ -1,124 +1,179 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { getAccountingData, getActiveAccounts, syncAccountingRecords } from '@/app/actions/accounting'
+import { JournalEntryFlat } from '@/types/database'
 import JournalTable from '@/components/libro-digital/JournalTable'
 import LedgerTable from '@/components/libro-digital/LedgerTable'
 import TrialBalance from '@/components/libro-digital/TrialBalance'
-import { JournalEntry } from '@/types/database'
-import { createClient } from '@/lib/supabase/client'
+import ManualEntryModal from '@/components/libro-digital/ManualEntryModal'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toast } from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
+import { ArrowPathIcon, PlusIcon } from '@heroicons/react/24/outline'
 
 export default function LibroDigitalPage() {
-    const [entries, setEntries] = useState<JournalEntry[]>([])
-    const [orgName, setOrgName] = useState('Organización')
+    const [entries, setEntries] = useState<JournalEntryFlat[]>([])
+    const [accounts, setAccounts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'diario' | 'mayor' | 'balance'>('diario')
+    const [syncing, setSyncing] = useState(false)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [dataError, setDataError] = useState<string | null>(null)
+    const router = useRouter()
 
-    useEffect(() => {
-        async function fetchData() {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
+    // ─── Carga de datos — una sola definición ─────────────────────────────────
+    const loadData = useCallback(async () => {
+        setLoading(true)
+        setDataError(null)
+        try {
+            const [accRes, entriesRes] = await Promise.all([
+                getActiveAccounts(),
+                getAccountingData(),
+            ])
 
-            const { data: userData } = await supabase
-                .from('users')
-                .select('organization_id')
-                .eq('id', user?.id)
-                .single()
-
-            if (userData?.organization_id) {
-                // Fetch organization name
-                const { data: orgData } = await supabase
-                    .from('organizations')
-                    .select('name')
-                    .eq('id', userData.organization_id)
-                    .single()
-
-                if (orgData) setOrgName(orgData.name)
-
-                const { data } = await supabase
-                    .from('journal_entries')
-                    .select('*')
-                    .eq('organization_id', userData.organization_id)
-                    .order('date', { ascending: false })
-                    .order('entry_number', { ascending: false })
-
-                setEntries(data || [])
+            if (accRes.success && accRes.data) {
+                setAccounts(accRes.data)
             }
+
+            if (entriesRes.success && entriesRes.data) {
+                setEntries(entriesRes.data as JournalEntryFlat[])
+            } else if (entriesRes.error) {
+                setDataError(entriesRes.error)
+            }
+        } catch (err: any) {
+            console.error('Error en loadData:', err)
+            setDataError('Error de conexión al cargar el libro digital.')
+        } finally {
             setLoading(false)
         }
-
-        fetchData()
     }, [])
 
-    if (loading) {
-        return (
-            <div className="p-8 text-center bg-white shadow-lg rounded-xl flex flex-col items-center justify-center space-y-4">
-                <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-                <p className="text-gray-500 font-medium">Cargando libros contables...</p>
-            </div>
-        )
+    useEffect(() => {
+        loadData()
+    }, [loadData])
+
+    // ─── Sincronización automática ────────────────────────────────────────────
+    const handleSync = async () => {
+        setSyncing(true)
+        try {
+            const res = await syncAccountingRecords()
+            if (res.success) {
+                toast.success(`Sincronización completa: ${res.syncedCount ?? 0} asientos generados.`)
+                loadData()
+            } else {
+                toast.error('Error en sincronización: ' + res.error)
+            }
+        } catch {
+            toast.error('Fallo en la sincronización')
+        } finally {
+            setSyncing(false)
+        }
     }
 
+    // ─── Modal handlers ───────────────────────────────────────────────────────
+    const handleNewEntry = () => setIsModalOpen(true)
+
+    const handleEntryCreated = () => {
+        setIsModalOpen(false)
+        loadData()
+        router.refresh()
+    }
+
+    // ─── Render ───────────────────────────────────────────────────────────────
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-end">
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+
+            {/* ── CABECERA: SIEMPRE VISIBLE, sin depender de loading ni de entries ── */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Libro Digital</h1>
-                    <p className="mt-1 text-sm text-gray-600">
-                        Contabilidad por Partida Doble - Libro Diario y Mayor con Balance de Comprobación
-                    </p>
+                    <h1 className="text-2xl font-bold text-gray-900">Libro Digital</h1>
+                    <p className="text-sm text-gray-500">Gestión contable bimonetaria y reportes en tiempo real</p>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                        onClick={handleSync}
+                        disabled={syncing}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50 text-sm font-medium"
+                    >
+                        <ArrowPathIcon className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                        {syncing ? 'Sincronizando...' : 'Sincronizar'}
+                    </button>
+                    <button
+                        onClick={handleNewEntry}
+                        className="flex-1 md:flex-none bg-primary-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all active:scale-95 flex items-center justify-center gap-2 text-sm"
+                    >
+                        <PlusIcon className="h-4 w-4" />
+                        Nuevo Asiento
+                    </button>
                 </div>
             </div>
 
-            <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
-                <div className="border-b border-gray-200 bg-gray-50/50">
-                    <nav className="flex px-4 overflow-x-auto no-scrollbar">
-                        <TabButton
-                            active={activeTab === 'diario'}
-                            onClick={() => setActiveTab('diario')}
-                            label="Libro Diario"
-                            icon="📖"
-                        />
-                        <TabButton
-                            active={activeTab === 'mayor'}
-                            onClick={() => setActiveTab('mayor')}
-                            label="Libro Mayor"
-                            icon="📒"
-                        />
-                        <TabButton
-                            active={activeTab === 'balance'}
-                            onClick={() => setActiveTab('balance')}
-                            label="Balance de Comprobación"
-                            icon="⚖️"
-                        />
-                    </nav>
-                </div>
-
-                <div className="p-4 sm:p-8 min-h-[400px]">
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {activeTab === 'diario' && <JournalTable entries={entries} organizationName={orgName} />}
-                        {activeTab === 'mayor' && <LedgerTable entries={entries} />}
-                        {activeTab === 'balance' && <TrialBalance entries={entries} />}
+            {/* ── ÁREA DE CONTENIDO ─────────────────────────────────────────────────── */}
+            <div className="min-h-[400px]">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100">
+                        <div className="w-12 h-12 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin mb-4" />
+                        <p className="text-gray-500 font-medium">Cargando libro contable...</p>
                     </div>
-                </div>
-            </div>
-        </div>
-    )
-}
+                ) : dataError ? (
+                    /* Error de organización / sesión — no rompe el componente */
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-amber-200">
+                        <div className="text-4xl mb-3">⚠️</div>
+                        <p className="text-amber-700 font-semibold text-lg mb-1">No se pudieron cargar los datos</p>
+                        <p className="text-gray-500 text-sm max-w-md text-center">{dataError}</p>
+                        <button
+                            onClick={loadData}
+                            className="mt-6 px-5 py-2 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors"
+                        >
+                            Reintentar
+                        </button>
+                    </div>
+                ) : (
+                    <Tabs defaultValue="diario" className="w-full">
+                        <TabsList className="bg-gray-100 p-1 rounded-xl mb-6 flex overflow-x-auto">
+                            <TabsTrigger value="diario" className="rounded-lg px-8 flex-1 sm:flex-none">Libro Diario</TabsTrigger>
+                            <TabsTrigger value="mayor"  className="rounded-lg px-8 flex-1 sm:flex-none">Libro Mayor</TabsTrigger>
+                            <TabsTrigger value="balance" className="rounded-lg px-8 flex-1 sm:flex-none">Balance Comprobación</TabsTrigger>
+                        </TabsList>
 
-function TabButton({ active, onClick, label, icon }: { active: boolean, onClick: () => void, label: string, icon: string }) {
-    return (
-        <button
-            onClick={onClick}
-            className={`
-        px-6 py-4 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center gap-2 whitespace-nowrap
-        ${active
-                    ? 'border-primary-600 text-primary-600 bg-white'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
-                }
-      `}
-        >
-            <span className="text-lg">{icon}</span>
-            {label}
-        </button>
+                        <TabsContent value="diario" className="mt-0 focus-visible:ring-0">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                                <JournalTable
+                                    entries={entries}
+                                    onNewEntry={handleNewEntry}
+                                    organizationName="ETHOS"
+                                />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="mayor" className="mt-0 focus-visible:ring-0">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                                <LedgerTable
+                                    entries={entries}
+                                    organizationName="ETHOS"
+                                />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="balance" className="mt-0 focus-visible:ring-0">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
+                                <TrialBalance
+                                    entries={entries}
+                                    organizationName="ETHOS"
+                                />
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                )}
+            </div>
+
+            {/* ── MODAL ASIENTO MANUAL ──────────────────────────────────────────────── */}
+            <ManualEntryModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={handleEntryCreated}
+                accounts={accounts}
+            />
+        </div>
     )
 }

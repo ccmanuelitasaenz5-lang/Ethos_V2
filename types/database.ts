@@ -107,23 +107,6 @@ export interface Document {
     uploaded_at: string
 }
 
-export interface JournalEntry {
-    id: string
-    organization_id: string
-    date: string
-    entry_number: number | null
-    description: string
-    account_code: string
-    account_name: string
-    debit: number
-    credit: number
-    reference_id: string | null
-    reference_type: 'income' | 'expense' | 'manual' | null
-    created_by: string | null
-    created_at: string
-    updated_at: string
-}
-
 export interface TransactionAccount {
     id: string
     organization_id: string
@@ -136,6 +119,37 @@ export interface TransactionAccount {
     created_at: string
     updated_at: string
 }
+
+export interface AccountingEntry {
+    id: string
+    organization_id: string
+    date: string
+    entry_number: number | null
+    description: string
+    reference_id: string | null
+    reference_type: 'income' | 'expense' | 'manual' | null
+    status: 'posted' | 'draft'
+    created_by: string | null
+    created_at: string
+    updated_at: string
+}
+
+export interface AccountingEntryItem {
+    id: string
+    entry_id: string
+    account_code: string
+    account_name: string
+    description?: string | null
+    debit: number
+    credit: number
+    debit_ves?: number
+    credit_ves?: number
+    amount_usd?: number | null
+    created_at: string
+}
+
+// Para compatibilidad con vistas flat en reportes
+export type JournalEntryFlat = AccountingEntry & AccountingEntryItem;
 
 export interface DashboardStats {
     totalIncome: number
