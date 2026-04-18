@@ -115,6 +115,12 @@ export async function signup(formData: FormData) {
       userId: authData.user.id,
     });
 
+    // Registrar inicio de creación de organización (para auditoría)
+    await logSecurityEvent("org_creation", "success", {
+      userId: authData.user.id,
+      metadata: { orgName }
+    });
+
     // 2. Crear la organización
     // Intentamos insertar. Si falla, capturamos el error exacto de la DB
     const { data: orgData, error: orgError } = await adminSupabase
@@ -160,9 +166,10 @@ export async function signup(formData: FormData) {
         error: `Error al vincular el perfil: ${userError.message}. Por favor, intenta nuevamente.`,
       };
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error("Signup error:", err);
-    return { error: `Error del sistema: ${err.message}` };
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    return { error: `Error del sistema: ${message}` };
   }
 
   revalidatePath("/", "layout");

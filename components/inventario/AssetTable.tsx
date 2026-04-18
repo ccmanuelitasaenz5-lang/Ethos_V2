@@ -220,7 +220,7 @@ export default function AssetTable({
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <select
                                                 value={asset.status}
-                                                onChange={(e) => handleStatusChange(asset.id, e.target.value as any)}
+                                                onChange={(e) => handleStatusChange(asset.id, e.target.value as 'active' | 'inactive' | 'disposed')}
                                                 className={`text-xs font-semibold rounded-full px-2 py-1 ${asset.status === 'active'
                                                     ? 'bg-green-100 text-green-800'
                                                     : asset.status === 'inactive'

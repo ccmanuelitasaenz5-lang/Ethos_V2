@@ -111,7 +111,7 @@ export async function createBankTransaction(formData: FormData) {
   const reference = formData.get("reference") as string;
 
   // 1. Insertar la transacción bancaria
-  const { data: tx, error: txError } = await supabase
+  const { error: txError } = await supabase
     .from("bank_transactions")
     .insert({
       organization_id: userData.organization_id,

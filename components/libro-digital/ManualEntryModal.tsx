@@ -7,7 +7,7 @@ import {
     createManualJournalEntry,
     getLatestExchangeRate,
 } from '@/app/actions/accounting'
-import type { TransactionAccount as AccountingAccount } from '@/types/database'
+import type { AccountingAccount } from '@/types/database'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -141,7 +141,7 @@ export default function ManualEntryModal({
 
             // Auto-completar nombre de cuenta
             if (field === 'account_code') {
-                const acc = accounts.find(a => a.code === rawValue)
+                const acc = movementAccounts.find(a => a.code === rawValue)
                 updated.account_name = acc?.name ?? ''
             }
 

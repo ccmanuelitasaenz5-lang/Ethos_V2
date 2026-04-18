@@ -2,15 +2,21 @@
  
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isPeriodClosed } from "@/app/actions/accounting";
+import { isPeriodClosed, postIncomeToJournal } from "@/app/actions/accounting";
 import { incomeSchema } from "@/lib/validations/income";
 import { createAuditLog } from "@/lib/security/audit";
+import { logSecurityEvent, isRateLimited } from "@/lib/security/logs";
 import { getRateForDate } from "@/lib/exchange";
  
 export async function createIncome(formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
+
+  // Rate limiting para prevenir spam de ingresos (20 por minuto)
+  if (await isRateLimited("income_creation", 20, 1)) {
+    return { error: "Has excedido el límite de creación de registros por minuto. Por favor, espera un momento." };
+  }
  
   const rawData = {
     date: formData.get("date"),
@@ -73,7 +79,7 @@ export async function createIncome(formData: FormData) {
   });
  
   if (values.status === "finalized") {
-      // (Misma lógica de asientos que antes pero con values...)
+    await postIncomeToJournal(incomeData.id);
   }
  
   revalidatePath("/dashboard/ingresos");
@@ -146,6 +152,10 @@ export async function updateIncome(id: string, formData: FormData) {
     .eq("id", id);
  
   if (updateError) return { error: updateError.message };
+ 
+  if (values.status === "finalized" && oldRecord.status !== "finalized") {
+    await postIncomeToJournal(id);
+  }
  
   await createAuditLog({
     organizationId: oldRecord.organization_id,

@@ -2,35 +2,26 @@ import { createClient } from '@/lib/supabase/server'
 import { unstable_cache } from 'next/cache'
 
 export const getDashboardStats = async (organizationId: string) => {
-  return unstable_cache(
-    async () => {
-      const supabase = await createClient()
+    const supabase = await createClient()
 
-      const { data: incomeData } = await supabase
-        .from('transactions_income')
-        .select('amount_usd, amount_ves, date')
-        .eq('organization_id', organizationId)
-      
-      const { data: expenseData } = await supabase
-        .from('transactions_expense')
-        .select('amount_usd, amount_ves, date, category')
-        .eq('organization_id', organizationId)
+    const { data: incomeData } = await supabase
+      .from('transactions_income')
+      .select('amount_usd, amount_ves, date')
+      .eq('organization_id', organizationId)
+    
+    const { data: expenseData } = await supabase
+      .from('transactions_expense')
+      .select('amount_usd, amount_ves, date, category')
+      .eq('organization_id', organizationId)
 
-      const { data: bankAccounts } = await supabase
-        .from('bank_accounts')
-        .select('current_balance, currency')
-        .eq('organization_id', organizationId)
+    const { data: bankAccounts } = await supabase
+      .from('bank_accounts')
+      .select('current_balance, currency')
+      .eq('organization_id', organizationId)
 
-      return {
-        incomeData: incomeData || [],
-        expenseData: expenseData || [],
-        bankAccounts: bankAccounts || []
-      }
-    },
-    [`dashboard-stats-${organizationId}`],
-    {
-      revalidate: 600, // 10 minutes
-      tags: ['dashboard-stats', `dashboard-stats-${organizationId}`]
+    return {
+      incomeData: incomeData || [],
+      expenseData: expenseData || [],
+      bankAccounts: bankAccounts || []
     }
-  )()
 }

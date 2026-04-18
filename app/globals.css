@@ -29,6 +29,52 @@ body {
   }
 }
 
+/* ────────────────────────────────────────────────────────────
+   CORRECCIÓN DE VISIBILIDAD EN INPUTS Y TEXTAREAS
+   Fuerza colores contrastantes para evitar texto invisible
+   ──────────────────────────────────────────────────────────── */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+input[type="url"],
+textarea,
+select {
+  color: #111827 !important;
+  /* Gris muy oscuro (casi negro) */
+  background-color: #ffffff !important;
+  /* Blanco puro */
+  border-color: #d1d5db !important;
+  /* Borde gris visible */
+}
+
+/* Modo oscuro: Invertir colores explícitamente */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="date"],
+.dark input[type="tel"],
+.dark input[type="url"],
+.dark textarea,
+.dark select {
+  color: #f3f4f6 !important;
+  /* Gris muy claro / Blanco */
+  background-color: #1f2937 !important;
+  /* Fondo gris oscuro */
+  border-color: #4b5563 !important;
+  /* Borde gris medio */
+}
+
+/* Placeholders siempre visibles */
+::placeholder {
+  color: #9ca3af !important;
+  opacity: 1;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
