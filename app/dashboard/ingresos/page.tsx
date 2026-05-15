@@ -29,7 +29,7 @@ export default async function IngresosPage({
     // Query builder
     let query = supabase
         .from('active_income')
-        .select('*')
+        .select('id, date, receipt_number, control_number, concept, amount_usd, amount_ves, exchange_rate, status, payment_method, organization_id, property_id, account_code, bank_account')
         .eq('organization_id', organizationId)
         .order('date', { ascending: false })
 

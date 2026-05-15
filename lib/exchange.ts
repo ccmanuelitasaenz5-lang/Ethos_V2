@@ -2,13 +2,13 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-// Tasa de respaldo actualizada (Abril 2026)
-const FALLBACK_RATE = 474.06
+// Tasa de respaldo actualizada (Mayo 2026)
+const FALLBACK_RATE = 515.18
 
 // ── Scraping BCV con timeout y reintentos ────────────────────────
 async function scrapeBCVRate(): Promise<number> {
   const maxRetries = 3
-  const timeoutMs = 5000 // 5 segundos
+  const timeoutMs = 8000 // Aumentado a 8 segundos
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     console.log(`[BCV] Intento ${attempt}/${maxRetries}`)
@@ -23,9 +23,8 @@ async function scrapeBCVRate(): Promise<number> {
           method: 'GET',
           timeout: timeoutMs,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'es-VE,es;q=0.9,en;q=0.8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html',
             'Connection': 'keep-alive'
           }
         }
@@ -34,12 +33,11 @@ async function scrapeBCVRate(): Promise<number> {
           let data = ''
           res.on('data', (chunk: any) => { data += chunk })
           res.on('end', () => {
-            // Múltiples patrones para mayor robustez
+            // Patrones actualizados para el sitio del BCV
             const patterns = [
               /id="dolar"[\s\S]*?<strong>\s*([\d,.]+)\s*<\/strong>/i,
-              /Dolar.*?([\d,.]+)/i,
-              /USD.*?([\d,.]+)/i,
-              /474,[0-9]+/i
+              /div\s+id="dolar"[\s\S]*?([\d,.]+)/i,
+              /Dolar.*?([\d,.]+)/i
             ]
             
             for (const pattern of patterns) {

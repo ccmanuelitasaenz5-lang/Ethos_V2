@@ -106,6 +106,8 @@ export async function createExpense(formData: FormData) {
   }
 
   revalidatePath("/dashboard/gastos");
+  revalidatePath("/dashboard/libro-digital");
+  revalidatePath("/dashboard/banco");
   return { success: true };
 }
  
@@ -204,6 +206,8 @@ export async function updateExpense(id: string, formData: FormData) {
   }
 
   revalidatePath("/dashboard/gastos");
+  revalidatePath("/dashboard/libro-digital");
+  revalidatePath("/dashboard/banco");
   return { success: true };
 }
 

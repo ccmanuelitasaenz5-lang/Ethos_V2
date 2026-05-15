@@ -54,6 +54,9 @@ export default function IncomeForm({ initialRate, accounts = [], properties = []
     async function onSubmit(data: IncomeFormValues) {
         setLoading(true)
         
+        // Use a local variable for the current status to avoid React state race conditions
+        const currentStatus = (document.activeElement as HTMLButtonElement)?.value === 'finalized' ? 'finalized' : 'draft';
+
         const formData = new FormData()
         Object.entries(data).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
@@ -61,8 +64,7 @@ export default function IncomeForm({ initialRate, accounts = [], properties = []
             }
         })
         
-        // Ensure the correct status is sent based on which button was clicked
-        formData.set('status', status)
+        formData.set('status', currentStatus)
 
         try {
             const result = initialData?.id
@@ -250,7 +252,7 @@ export default function IncomeForm({ initialRate, accounts = [], properties = []
                 <button
                     type="submit"
                     disabled={loading}
-                    onClick={() => setStatus('draft')}
+                    value="draft"
                     className="px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
                 >
                     {loading && status === 'draft' ? 'Procesando...' : 'Guardar Borrador'}
@@ -258,7 +260,7 @@ export default function IncomeForm({ initialRate, accounts = [], properties = []
                 <button
                     type="submit"
                     disabled={loading}
-                    onClick={() => setStatus('finalized')}
+                    value="finalized"
                     className="px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
                 >
                     {loading && status === 'finalized' ? 'Procesando...' : 'Finalizar y Fiscalizar'}

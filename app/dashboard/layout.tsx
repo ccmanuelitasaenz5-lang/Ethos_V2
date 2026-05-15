@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
 import { getBCVRate } from '@/lib/exchange'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export default async function DashboardLayout({
     children,
@@ -27,32 +28,16 @@ export default async function DashboardLayout({
         .eq('id', user.id)
         .maybeSingle()
 
-    // --- AUTO-LINK LOGIC ---
-    // If the user profile doesn't exist or doesn't have an org, 
-    // try to fix it automatically by linking to the first organization.
-    if (!userData || !userData.organization_id) {
-        const { data: firstOrg } = await supabase
-            .from('organizations')
-            .select('id')
-            .limit(1)
-            .maybeSingle()
-
-        if (firstOrg) {
-            const { data: newUser } = await supabase
-                .from('users')
-                .upsert({
-                    id: user.id,
-                    organization_id: firstOrg.id,
-                    full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuario',
-                    role: 'resident' // Changed from 'admin' for security (technical audit finding 3.2)
-                })
-                .select('organization_id, full_name')
-                .single()
-
-            if (newUser) {
-                userData = newUser
+    // --- REPAIR IDENTITY / SYNC METADATA ---
+    // Critical: RLS policies depend on organization_id being in the JWT metadata.
+    if (userData?.organization_id && user.user_metadata?.organization_id !== userData.organization_id) {
+        const adminSupabase = createAdminClient();
+        await adminSupabase.auth.admin.updateUserById(user.id, {
+            user_metadata: { 
+                ...user.user_metadata,
+                organization_id: userData.organization_id 
             }
-        }
+        });
     }
 
     let organization = null

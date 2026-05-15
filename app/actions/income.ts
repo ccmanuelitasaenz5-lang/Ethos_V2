@@ -63,6 +63,7 @@ export async function createIncome(formData: FormData) {
       status: values.status,
       account_code: values.account_code,
       payment_method: values.payment_method,
+      bank_account: values.bank_account,
       created_by: user.id,
     })
     .select().single();
@@ -78,12 +79,19 @@ export async function createIncome(formData: FormData) {
     newData: values,
   });
  
+  let journalResult = null;
   if (values.status === "finalized") {
-    await postIncomeToJournal(incomeData.id);
+    journalResult = await postIncomeToJournal(incomeData.id);
   }
- 
+
   revalidatePath("/dashboard/ingresos");
-  return { success: true };
+  revalidatePath("/dashboard/libro-digital");
+  revalidatePath("/dashboard/banco");
+  return { 
+    success: true, 
+    journalSuccess: journalResult ? journalResult.success : null,
+    journalError: journalResult?.error 
+  };
 }
  
 export async function deleteIncome(id: string) {
@@ -148,15 +156,18 @@ export async function updateIncome(id: string, formData: FormData) {
       status: values.status,
       account_code: values.account_code,
       payment_method: values.payment_method,
+      bank_account: values.bank_account,
+      amount_ves: values.amount_usd * (values.exchange_rate || 0),
     })
     .eq("id", id);
  
   if (updateError) return { error: updateError.message };
  
+  let journalResult = null;
   if (values.status === "finalized" && oldRecord.status !== "finalized") {
-    await postIncomeToJournal(id);
+    journalResult = await postIncomeToJournal(id);
   }
- 
+
   await createAuditLog({
     organizationId: oldRecord.organization_id,
     userId: user.id,
@@ -168,5 +179,11 @@ export async function updateIncome(id: string, formData: FormData) {
   });
  
   revalidatePath("/dashboard/ingresos");
-  return { success: true };
+  revalidatePath("/dashboard/libro-digital");
+  revalidatePath("/dashboard/banco");
+  return { 
+    success: true, 
+    journalSuccess: journalResult ? journalResult.success : null,
+    journalError: journalResult?.error 
+  };
 }

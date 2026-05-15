@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { getTodayRate } from "@/lib/exchange";
 
@@ -17,7 +17,7 @@ export type AccountType =
  * Trae todas las cuentas registradas para la organizaciÃ³n del usuario actual.
  */
 export async function getChartOfAccounts() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1. Identificar al usuario conectado
   const {
@@ -55,7 +55,7 @@ export async function getChartOfAccounts() {
  * EspecÃ­fica para el Libro Diario (filtrando solo las que permiten imputaciÃ³n)
  */
 export async function getActiveAccounts() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // 1. Identificar al usuario conectado
@@ -77,7 +77,7 @@ export async function getActiveAccounts() {
     const { data, error } = await supabase
       .from("accounting_accounts")
       .select("id, code, name, main_type, level, is_movement")
-      .eq("organization_id", userData.organization_id)
+      .eq("organization_id", orgId)
       .eq("is_movement", true) // Solo cuentas que permiten movimiento
       .order("code", { ascending: true });
 
@@ -192,7 +192,7 @@ export async function seedDefaultAccounts(organizationId: string) {
  * Función: Crear una cuenta contable individual (Árbol Contable)
  */
 export async function createAccount(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // 1. Obtener organización del usuario
   const { data: { user } } = await supabase.auth.getUser();
@@ -263,7 +263,7 @@ export async function createAccount(formData: FormData) {
  * Función: Importar cuentas desde texto (TXT) con validación de árbol
  */
 export async function importAccountsFromText(text: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
@@ -345,7 +345,7 @@ export async function importAccountsFromText(text: string) {
  * Función: Actualizar una cuenta contable
  */
 export async function updateAccount(id: string, formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
@@ -381,7 +381,7 @@ export async function updateAccount(id: string, formData: FormData) {
  * FunciÃ³n: Eliminar una cuenta contable
  */
 export async function deleteAccount(id: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
@@ -416,7 +416,7 @@ export async function deleteAccount(id: string) {
  * FunciÃ³n: Verificar si un periodo estÃ¡ cerrado
  */
 export async function isPeriodClosed(dateString: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return true;
@@ -465,18 +465,41 @@ export async function createManualJournalEntry(payload: {
     debit_ves: number;
     credit_ves: number;
   }[];
-}) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "No autenticado" };
+}, supabaseClient?: any) {
+  const supabase = supabaseClient || await createClient();
+  let organizationId: string;
+  let userId: string | undefined;
 
-  const { data: userData } = await supabase
-    .from("users")
-    .select("organization_id")
-    .eq("id", user.id)
-    .single();
+  if (!supabaseClient) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+    userId = user.id;
 
-  if (!userData?.organization_id) return { error: "Sin organización" };
+    const { data: userData } = await supabase
+      .from("users")
+      .select("organization_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!userData?.organization_id) return { error: "Sin organización" };
+    organizationId = userData.organization_id;
+  } else {
+    // Para clientes admin o procesos automáticos, usamos los IDs proporcionados o intentamos obtenerlos
+    organizationId = (payload as any).organization_id;
+    userId = (payload as any).userId || (payload as any).user_id;
+
+    if (!organizationId) {
+      // Intento de recuperación: si hay userId, buscamos su organización
+      if (userId) {
+          const { data: userData } = await supabase.from("users").select("organization_id").eq("id", userId).single();
+          organizationId = userData?.organization_id;
+      }
+    }
+  }
+
+  // Si después de todo no hay organization_id, error.
+  // @ts-ignore
+  if (!organizationId) return { error: "No se pudo determinar la organización" };
 
   if (await isPeriodClosed(payload.date)) {
     return { error: "El periodo contable está cerrado para esta fecha." };
@@ -496,10 +519,11 @@ export async function createManualJournalEntry(payload: {
   }
 
   // 1. Obtener número de asiento
+  // Si no hay usuario (caso admin/proceso automático), no fallamos, solo buscamos por org
   const { data: lastEntry } = await supabase
     .from("accounting_entries")
     .select("entry_number")
-    .eq("organization_id", userData.organization_id)
+    .eq("organization_id", organizationId)
     .order("entry_number", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -510,14 +534,14 @@ export async function createManualJournalEntry(payload: {
   const { data: entry, error: entryError } = await supabase
     .from("accounting_entries")
     .insert({
-      organization_id: userData.organization_id,
+      organization_id: organizationId,
       date: payload.date,
       entry_number: nextNumber,
       description: payload.description,
       status: "posted",
       reference_id: payload.reference_id || null,
       reference_type: payload.reference_type || "manual",
-      created_by: user.id
+      created_by: userId || null
     })
     .select()
     .single();
@@ -554,10 +578,10 @@ export async function createManualJournalEntry(payload: {
  * Genera automáticamente un asiento contable a partir de un gasto finalizado.
  */
 export async function postExpenseToJournal(expenseId: string) {
-  const supabase = createClient();
+  const adminSupabase = createAdminClient();
   
   // 1. Obtener el gasto completo
-  const { data: expense, error: fetchError } = await supabase
+  const { data: expense, error: fetchError } = await adminSupabase
     .from("transactions_expense")
     .select("*")
     .eq("id", expenseId)
@@ -566,8 +590,8 @@ export async function postExpenseToJournal(expenseId: string) {
   if (fetchError || !expense) return { error: "Gasto no encontrado" };
   if (expense.status !== "finalized") return { error: "Solo se pueden contabilizar gastos finalizados" };
 
-  // 2. Validar si ya existe un asiento para este gasto
-  const { data: existing } = await supabase
+  // 2. Validar si ya existe un asiento
+  const { data: existing } = await adminSupabase
     .from("accounting_entries")
     .select("id")
     .eq("reference_id", expenseId)
@@ -576,15 +600,41 @@ export async function postExpenseToJournal(expenseId: string) {
 
   if (existing) return { success: true, message: "Ya existe un asiento para este gasto" };
 
-  // 3. Definir cuentas (Búsqueda lógica si no están en el gasto)
-  // Nota: Idealmente estos códigos vienen de la configuración de la organización
-  const expenseAccount = expense.account_code || "5.4.01"; // Gasto Administrativo por defecto
-  const paymentAccount = expense.payment_account || "1.1.01"; // Caja Principal por defecto
-  const ivaAccount = "1.1.07"; // IVA Crédito Fiscal (Activo)
+  // 3. Definir cuentas — CORRECCIÓN CRÍTICA
+  const expenseAccount = expense.account_code || "5.4.01";
+  let paymentAccount = "1.1.01";
+  const ivaAccount = "1.1.07";
+  let bankAccountId: string | null = null;
+
+  if (expense.payment_account) {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(expense.payment_account);
+    
+    if (isUUID) {
+      const { data: bank } = await adminSupabase
+        .from("bank_accounts")
+        .select("id, accounting_code, accounting_account_id, accounting_accounts:accounting_account_id(code)")
+        .eq("id", expense.payment_account)
+        .single();
+      
+      if (bank) {
+        bankAccountId = bank.id;
+        // @ts-ignore
+        paymentAccount = bank.accounting_code || bank.accounting_accounts?.code || paymentAccount;
+      }
+    } else {
+      paymentAccount = expense.payment_account;
+      const { data: bank } = await adminSupabase
+        .from("bank_accounts")
+        .select("id")
+        .eq("accounting_code", expense.payment_account)
+        .maybeSingle();
+      bankAccountId = bank?.id || null;
+    }
+  }
 
   const items = [];
   
-  // Renglón 1: Cargo al Gasto (Monto Neto / Subtotal)
+  // Renglón 1: Cargo al Gasto (Monto Neto)
   items.push({
     account_code: expenseAccount,
     account_name: "Gasto Operativo",
@@ -606,37 +656,69 @@ export async function postExpenseToJournal(expenseId: string) {
     });
   }
 
-  // Renglón 3: Abono a Banco/Caja (Monto Total VES - incluye IGTF si aplica)
-  // Usamos el total que salió de la cuenta (amount_ves ya calculado en el action del gasto)
+  // Renglón 3: Abono a Banco/Caja (Monto Total USD y VES)
   items.push({
     account_code: paymentAccount,
     account_name: "Banco / Caja",
     debit: 0,
-    credit: expense.amount_usd, // En USD el total es subtotal + iva
+    credit: expense.amount_usd,
     debit_ves: 0,
-    credit_ves: expense.amount_ves, // El monto en VES incluye IGTF si corresponde
+    credit_ves: expense.amount_ves,
   });
 
-  // 4. Llamar a la lógica de creación de asiento
-  return createManualJournalEntry({
+  // 4. Crear asiento contable
+  const result = await createManualJournalEntry({
     date: expense.date,
     description: `Gasto: ${expense.supplier} - ${expense.concept} (Fac: ${expense.invoice_number})`,
     exchange_rate: expense.exchange_rate,
     reference_id: expenseId,
     reference_type: "expense",
+    // @ts-ignore
+    organization_id: expense.organization_id,
+    userId: expense.created_by,
     items: items
-  });
+  } as any, adminSupabase);
+
+  if (!result.success) return result;
+
+  // 5. Registrar movimiento bancario (SALIDA de dinero)
+  if (bankAccountId) {
+    await adminSupabase
+      .from("bank_transactions")
+      .insert({
+        organization_id: expense.organization_id,
+        bank_account_id: bankAccountId,
+        date: expense.date,
+        description: `Gasto: ${expense.supplier} - ${expense.concept} (Fac: ${expense.invoice_number})`,
+        amount: -expense.amount_ves, // Monto VES negativo = salida
+        transaction_type: "expense",
+        reference: expense.invoice_number || null,
+        reference_id: expenseId,
+        reference_type: "expense",
+        created_by: expense.created_by,
+      });
+  }
+
+  revalidatePath("/dashboard/libro-digital");
+  revalidatePath("/dashboard/banco");
+  revalidatePath("/dashboard/gastos");
+
+  return result;
 }
 
 /**
  * Tarea: Automatización de "Ingreso a Asiento"
  * Genera automáticamente un asiento contable a partir de un ingreso finalizado.
  */
+/**
+ * Tarea: Automatización de "Ingreso a Asiento"
+ * Genera automáticamente un asiento contable a partir de un ingreso finalizado.
+ */
 export async function postIncomeToJournal(incomeId: string) {
-  const supabase = createClient();
+  const adminSupabase = createAdminClient();
   
-  // 1. Obtener el ingreso completo
-  const { data: income, error: fetchError } = await supabase
+  // 1. Obtener el ingreso completo (usando admin para asegurar bypass de RLS)
+  const { data: income, error: fetchError } = await adminSupabase
     .from("transactions_income")
     .select("*")
     .eq("id", incomeId)
@@ -646,7 +728,7 @@ export async function postIncomeToJournal(incomeId: string) {
   if (income.status !== "finalized") return { error: "Solo se pueden contabilizar ingresos finalizados" };
 
   // 2. Validar si ya existe un asiento para este ingreso
-  const { data: existing } = await supabase
+  const { data: existing } = await adminSupabase
     .from("accounting_entries")
     .select("id")
     .eq("reference_id", incomeId)
@@ -655,41 +737,117 @@ export async function postIncomeToJournal(incomeId: string) {
 
   if (existing) return { success: true, message: "Ya existe un asiento para este ingreso" };
 
-  // 3. Definir cuentas
-  const incomeAccount = income.account_code || "4.1.01"; // Ingresos Ordinarios por defecto
-  const paymentAccount = "1.1.01"; // Caja Principal por defecto (Debe)
+  // 3. Definir cuentas — CORRECCIÓN CRÍTICA
+  const incomeAccount = income.account_code || "4.1"; // Default a Ingresos
+  let paymentAccount = "1.1.01"; // Default a Caja Principal
+  let bankAccountId: string | null = null;
 
-  const items = [];
-  
-  // Renglón 1: Abono al Ingreso (Monto Haber) - Naturaleza Crédito
-  items.push({
-    account_code: incomeAccount,
-    account_name: "Ingresos / Ventas",
-    debit: 0,
-    credit: income.amount_usd,
-    debit_ves: 0,
-    credit_ves: income.amount_ves,
-  });
+  if (income.bank_account) {
+    // Determinar si es UUID o código contable
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(income.bank_account);
+    
+    if (isUUID) {
+      // Es un ID de banco — buscar con JOIN para obtener el código contable
+      const { data: bank } = await adminSupabase
+        .from("bank_accounts")
+        .select(`
+          id, 
+          accounting_code, 
+          accounting_account_id,
+          accounting_accounts:accounting_account_id(code)
+        `)
+        .eq("id", income.bank_account)
+        .single();
+      
+      if (bank) {
+        bankAccountId = bank.id;
+        // @ts-ignore
+        paymentAccount = bank.accounting_code || bank.accounting_accounts?.code || paymentAccount;
+      }
+    } else {
+      // Es un código contable directo
+      paymentAccount = income.bank_account;
+      // Buscar el banco por código contable
+      const { data: bank } = await adminSupabase
+        .from("bank_accounts")
+        .select("id")
+        .eq("accounting_code", income.bank_account)
+        .maybeSingle();
+      bankAccountId = bank?.id || null;
+    }
+  }
 
-  // Renglón 2: Cargo a Banco/Caja (Monto Debe) - Naturaleza Débito
-  items.push({
-    account_code: paymentAccount,
-    account_name: "Efectivo / Banco",
-    debit: income.amount_usd,
-    credit: 0,
-    debit_ves: income.amount_ves,
-    credit_ves: 0,
-  });
+  // 4. Validar montos
+  if (!income.amount_usd || income.amount_usd <= 0) {
+    return { error: "El monto del ingreso en USD no es válido" };
+  }
+  const amountVES = income.amount_ves || (income.amount_usd * (income.exchange_rate || 1));
 
-  // 4. Llamar a la lógica de creación de asiento
-  return createManualJournalEntry({
+  const items = [
+    {
+      account_code: paymentAccount,
+      account_name: "Efectivo / Banco",
+      debit: income.amount_usd,
+      credit: 0,
+      debit_ves: amountVES,
+      credit_ves: 0,
+    },
+    {
+      account_code: incomeAccount,
+      account_name: "Ingresos",
+      debit: 0,
+      credit: income.amount_usd,
+      debit_ves: 0,
+      credit_ves: amountVES,
+    },
+  ];
+
+  // 5. Llamar a la lógica de creación de asiento (Usando Admin Client)
+  const result = await createManualJournalEntry({
     date: income.date,
-    description: `Ingreso: ${income.concept} (Recibo: ${income.receipt_number})`,
-    exchange_rate: income.exchange_rate,
+    description: `Ingreso: ${income.concept} (Recibo: ${income.receipt_number || 'N/A'})`,
+    exchange_rate: income.exchange_rate || 1,
     reference_id: incomeId,
     reference_type: "income",
+    // @ts-ignore - Estos campos son manejados internamente por createManualJournalEntry cuando se pasa supabaseClient
+    organization_id: income.organization_id, 
+    userId: income.created_by,
     items: items
-  });
+  } as any, adminSupabase);
+
+  if (!result.success) {
+    console.error("Error al crear asiento para ingreso:", result.error);
+    return result;
+  }
+
+  // 6. Registrar movimiento en la tabla de bancos — CORRECCIÓN CRÍTICA DE CAMPOS Y TIPOS
+  if (bankAccountId) {
+    const { error: bankError } = await adminSupabase
+      .from("bank_transactions")
+      .insert({
+        organization_id: income.organization_id,
+        bank_account_id: bankAccountId,
+        date: income.date,
+        description: `Ingreso: ${income.concept} (Recibo: ${income.receipt_number || 'N/A'})`,
+        amount: amountVES,           // Monto VES positivo = depósito
+        transaction_type: "income",  // CORRECTO: 'deposito' era inválido
+        reference: income.receipt_number || null,
+        reference_id: incomeId,
+        reference_type: 'income',
+        created_by: income.created_by
+      });
+
+    if (bankError) {
+      console.error("Error al registrar movimiento bancario:", bankError);
+    }
+  }
+
+  // 7. Invalidar caches
+  revalidatePath("/dashboard/libro-digital");
+  revalidatePath("/dashboard/banco");
+  revalidatePath("/dashboard/ingresos");
+
+  return result;
 }
 
 /**
@@ -697,18 +855,31 @@ export async function postIncomeToJournal(incomeId: string) {
  * Consume la vista SQL view_journal_flat
  */
 export async function getAccountingData(startDate?: string, endDate?: string) {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const orgId = session?.user?.user_metadata?.organization_id;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return { error: "No session" };
 
-  if (!orgId || orgId === 'undefined') {
+  // Intentar obtener orgId de metadata o de la tabla de perfiles
+  let orgId = user.user_metadata?.organization_id;
+
+  if (!orgId) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single();
+    orgId = profile?.organization_id;
+  }
+
+  if (!orgId) {
     return { success: true, data: [] }; // Silenciar el error y devolver vacío
   }
 
   let query = supabase
     .from("view_journal_flat")
     .select("*")
-    .eq("organization_id", userData.organization_id)
+    .eq("organization_id", orgId)
     .order("date", { ascending: false })
     .order("entry_number", { ascending: false });
 
@@ -723,9 +894,7 @@ export async function getAccountingData(startDate?: string, endDate?: string) {
   // (La vista usa debit_usd/credit_usd, los componentes esperan debit/credit)
   const mappedData = (data || []).map(item => ({
     ...item,
-    debit: item.debit_usd,
-    credit: item.credit_usd,
-    description: item.description || item.entry_description // Soporte para ambos nombres
+    description: item.item_description || item.entry_description || item.description
   }));
   
   return { success: true, data: (mappedData || []) as any[] };
@@ -736,7 +905,7 @@ export async function getAccountingData(startDate?: string, endDate?: string) {
  * Busca transacciones finalizadas que no tienen asiento y los genera.
  */
 export async function syncAccountingRecords() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado" };
 
@@ -779,7 +948,7 @@ export async function syncAccountingRecords() {
  * Usada por el modal de asiento manual para pre-cargar la tasa del día.
  */
 export async function getLatestExchangeRate(): Promise<{ rate: number; source: string }> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Buscar la tasa más reciente en la BD
   const { data } = await supabase
