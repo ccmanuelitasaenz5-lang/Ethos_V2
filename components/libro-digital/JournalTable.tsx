@@ -3,7 +3,7 @@
 import { JournalEntryFlat } from '@/types/database'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import * as XLSX from 'xlsx'
 import { ArrowDownTrayIcon, MagnifyingGlassIcon, PrinterIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import PrintHeader from '@/components/layout/PrintHeader'
@@ -121,7 +121,7 @@ export default function JournalTable({ entries, organizationName = 'Organizació
                                 const isBalanced = Math.abs(totalD - totalC) < 0.01
 
                                 return (
-                                    <use-fragment key={entryNum}>
+                                    <Fragment key={entryNum}>
                                         {/* Cabecera del Grupo de Asiento */}
                                         <tr className="bg-gray-50/50 font-bold border-t-2 border-gray-200">
                                             <td className="px-4 py-2 text-xs flex items-center gap-2">
@@ -166,12 +166,13 @@ export default function JournalTable({ entries, organizationName = 'Organizació
                                                 </td>
                                             </tr>
                                         ))}
-                                    </use-fragment>
+                                    </Fragment>
                                 )
                             })
                         )}
                     </tbody>
                 </table>
             </div>
+        </div>
     )
 }
