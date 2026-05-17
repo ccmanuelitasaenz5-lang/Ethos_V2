@@ -58,17 +58,6 @@ export default function JournalTable({ entries, organizationName = 'Organizació
 
     return (
         <div className="space-y-4">
-            <style jsx global>{`
-                @media print {
-                    .no-print { display: none !important; }
-                    body { background: white; padding: 0; }
-                    .print-area { width: 100%; border: none !important; }
-                    table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
-                    tr { page-break-inside: avoid; page-break-after: auto; }
-                    th, td { border: 1px solid #eee !important; font-size: 10pt !important; }
-                }
-            `}</style>
-
             <PrintHeader title="Libro Diario" organizationName={organizationName} />
             
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
