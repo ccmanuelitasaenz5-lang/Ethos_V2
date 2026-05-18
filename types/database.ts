@@ -44,6 +44,7 @@ export interface TransactionIncome {
     amount_ves: number | null
     exchange_rate: number | null
     account_code: string | null
+    bank_account?: string | null
     payment_method: 'efectivo' | 'transferencia' | 'pago_movil' | 'cheque' | 'tarjeta' | null
     status: 'draft' | 'finalized' | 'annulled'
     created_by: string | null
@@ -70,6 +71,8 @@ export interface TransactionExpense {
     igtf_apply: boolean
     igtf_amount: number
     category: string | null
+    account_code?: string | null
+    payment_account?: string | null
     payment_method: 'efectivo' | 'transferencia' | 'pago_movil' | 'cheque' | 'tarjeta' | null
     status: 'draft' | 'finalized' | 'annulled'
     created_by: string | null

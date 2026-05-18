@@ -148,10 +148,10 @@ export default function JournalTable({ entries, organizationName = 'Organizació
                                                     {item.credit > 0 ? item.credit.toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'}
                                                 </td>
                                                 <td className="px-4 py-2 text-right font-mono text-green-700 bg-blue-50/10">
-                                                    {item.debit_ves > 0 ? item.debit_ves.toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'}
+                                                    {item.debit_ves && item.debit_ves > 0 ? item.debit_ves.toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'}
                                                 </td>
                                                 <td className="px-4 py-2 text-right font-mono text-red-700 bg-blue-50/10">
-                                                    {item.credit_ves > 0 ? item.credit_ves.toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'}
+                                                    {item.credit_ves && item.credit_ves > 0 ? item.credit_ves.toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'}
                                                 </td>
                                             </tr>
                                         ))}

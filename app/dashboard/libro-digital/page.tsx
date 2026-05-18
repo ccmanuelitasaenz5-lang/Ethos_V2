@@ -150,7 +150,6 @@ export default function LibroDigitalPage() {
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
                                 <LedgerTable
                                     entries={entries}
-                                    organizationName="ETHOS"
                                 />
                             </div>
                         </TabsContent>
@@ -159,7 +158,6 @@ export default function LibroDigitalPage() {
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-visible">
                                 <TrialBalance
                                     entries={entries}
-                                    organizationName="ETHOS"
                                 />
                             </div>
                         </TabsContent>

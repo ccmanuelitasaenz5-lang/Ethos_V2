@@ -7,7 +7,7 @@ import {
     createManualJournalEntry,
     getLatestExchangeRate,
 } from '@/app/actions/accounting'
-import type { AccountingAccount } from '@/types/database'
+import type { TransactionAccount } from '@/types/database'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -16,7 +16,7 @@ interface ManualEntryModalProps {
     isOpen: boolean
     onClose: () => void
     onSuccess: () => void
-    accounts?: AccountingAccount[] // opcional — si se pasa desde la página, se usa
+    accounts?: TransactionAccount[] // opcional — si se pasa desde la página, se usa
 }
 
 interface JournalLine {
@@ -55,7 +55,7 @@ export default function ManualEntryModal({
     const [rateSource, setRateSource] = useState<string>('')
     const [lines, setLines] = useState<JournalLine[]>([EMPTY_LINE(), EMPTY_LINE()])
 
-    const [accounts, setAccounts] = useState<AccountingAccount[]>(accountsProp ?? [])
+    const [accounts, setAccounts] = useState<TransactionAccount[]>(accountsProp ?? [])
     const [loadingAccounts, setLoadingAccounts] = useState(false)
     const [loadingRate, setLoadingRate] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)

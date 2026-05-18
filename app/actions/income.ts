@@ -89,8 +89,8 @@ export async function createIncome(formData: FormData) {
   revalidatePath("/dashboard/banco");
   return { 
     success: true, 
-    journalSuccess: journalResult ? journalResult.success : null,
-    journalError: journalResult?.error 
+    journalSuccess: journalResult ? (journalResult as any).success : null,
+    journalError: journalResult ? (journalResult as any).error : undefined 
   };
 }
  
@@ -183,7 +183,7 @@ export async function updateIncome(id: string, formData: FormData) {
   revalidatePath("/dashboard/banco");
   return { 
     success: true, 
-    journalSuccess: journalResult ? journalResult.success : null,
-    journalError: journalResult?.error 
+    journalSuccess: journalResult ? (journalResult as any).success : null,
+    journalError: journalResult ? (journalResult as any).error : undefined 
   };
 }
