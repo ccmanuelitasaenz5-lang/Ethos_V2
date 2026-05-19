@@ -24,8 +24,8 @@ export const incomeSchema = z.object({
   status: z.enum(['draft','finalized','annulled']).default('draft'),
  
   property_id: z.string().uuid().optional().nullable(),
-  account_code: z.string().optional().nullable(),
-  bank_account: z.string().optional().nullable(),
+  account_code: z.string().min(1, 'La cuenta de ingreso es requerida'),
+  bank_account: z.string().min(1, 'La cuenta de destino es requerida'),
 })
  
 export type IncomeFormValues = z.infer<typeof incomeSchema>

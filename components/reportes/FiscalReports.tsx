@@ -101,7 +101,7 @@ function SalesBookTable({ incomes }: { incomes: TransactionIncome[] }) {
                     <tr><td colSpan={9} className="py-4 text-gray-500">No hay movimientos en este periodo</td></tr>
                 ) : incomes.map(income => (
                     <tr key={income.id}>
-                        <td className="px-2 py-2">{format(new Date(income.date), 'dd/MM/yyyy')}</td>
+                        <td className="px-2 py-2">{format(new Date(income.date + 'T12:00:00'), 'dd/MM/yyyy')}</td>
                         <td className="px-2 py-2">-</td>
                         <td className="px-2 py-2">{income.concept}</td>
                         <td className="px-2 py-2">{income.receipt_number || '-'}</td>
@@ -139,7 +139,7 @@ function PurchasesBookTable({ expenses }: { expenses: TransactionExpense[] }) {
                     <tr><td colSpan={10} className="py-4 text-gray-500">No hay movimientos en este periodo</td></tr>
                 ) : expenses.map(expense => (
                     <tr key={expense.id}>
-                        <td className="px-2 py-2">{format(new Date(expense.date), 'dd/MM/yyyy')}</td>
+                        <td className="px-2 py-2">{format(new Date(expense.date + 'T12:00:00'), 'dd/MM/yyyy')}</td>
                         <td className="px-2 py-2">-</td>
                         <td className="px-2 py-2">{expense.supplier}</td>
                         <td className="px-2 py-2">{expense.invoice_number || '-'}</td>
@@ -203,7 +203,7 @@ function ISLRTable({ expenses, rifAgent, period }: { expenses: TransactionExpens
                         <tr><td colSpan={6} className="py-4 text-gray-500">No hay retenciones de ISLR</td></tr>
                     ) : expensesWithRetention.map(expense => (
                         <tr key={expense.id}>
-                            <td className="px-2 py-2">{format(new Date(expense.date), 'dd/MM/yyyy')}</td>
+                            <td className="px-2 py-2">{format(new Date(expense.date + 'T12:00:00'), 'dd/MM/yyyy')}</td>
                             <td className="px-2 py-2">{expense.supplier}</td>
                             <td className="px-2 py-2">{expense.concept}</td>
                             <td className="px-2 py-2">{(expense.subtotal || 0).toFixed(2)}</td>

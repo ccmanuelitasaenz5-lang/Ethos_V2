@@ -627,6 +627,7 @@ export async function postExpenseToJournal(expenseId: string) {
         .from("bank_accounts")
         .select("id")
         .eq("accounting_code", expense.payment_account)
+        .eq("organization_id", expense.organization_id)
         .maybeSingle();
       bankAccountId = bank?.id || null;
     }
@@ -772,6 +773,7 @@ export async function postIncomeToJournal(incomeId: string) {
         .from("bank_accounts")
         .select("id")
         .eq("accounting_code", income.bank_account)
+        .eq("organization_id", income.organization_id)
         .maybeSingle();
       bankAccountId = bank?.id || null;
     }
@@ -892,7 +894,17 @@ export async function getAccountingData(startDate?: string, endDate?: string) {
 
   // Mapear campos para compatibilidad con la interfaz JournalEntryFlat
   // (La vista usa debit_usd/credit_usd, los componentes esperan debit/credit)
-  const mappedData = (data || []).map(item => ({
+  // Además, filtramos duplicados por item_id para mitigar un posible bug en la vista de base de datos
+  const uniqueData = [];
+  const seenItems = new Set();
+  for (const item of (data || [])) {
+    if (!seenItems.has(item.item_id)) {
+      seenItems.add(item.item_id);
+      uniqueData.push(item);
+    }
+  }
+
+  const mappedData = uniqueData.map(item => ({
     ...item,
     description: item.item_description || item.entry_description || item.description
   }));

@@ -174,7 +174,7 @@ export default function ExpenseTable({
                             expenses.map((expense) => (
                                 <tr key={expense.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {format(new Date(expense.date), 'dd/MM/yyyy', { locale: es })}
+                                        {format(new Date(expense.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: es })}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {expense.invoice_number || '-'}

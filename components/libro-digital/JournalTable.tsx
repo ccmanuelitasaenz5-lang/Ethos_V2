@@ -40,7 +40,7 @@ export default function JournalTable({ entries, organizationName = 'Organizació
         // Garantizar tipos numéricos para Excel
         const data = entries.map(entry => ({
             'Asiento': entry.entry_number,
-            'Fecha': format(new Date(entry.date), 'dd/MM/yyyy'),
+            'Fecha': format(new Date(entry.date + 'T12:00:00'), 'dd/MM/yyyy'),
             'Código': entry.account_code,
             'Cuenta': entry.account_name,
             'Descripción': entry.description,
@@ -115,7 +115,7 @@ export default function JournalTable({ entries, organizationName = 'Organizació
                                         <tr className="bg-gray-50/50 font-bold border-t-2 border-gray-200">
                                             <td className="px-4 py-2 text-xs flex items-center gap-2">
                                                 <span className="bg-gray-200 px-2 py-0.5 rounded">#{entryNum}</span>
-                                                <span>{format(new Date(items[0].date), 'dd/MM/yyyy')}</span>
+                                                <span>{format(new Date(items[0].date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
                                             </td>
                                             <td colSpan={2} className="px-4 py-2 text-xs text-gray-600 italic">
                                                 {items[0].description}

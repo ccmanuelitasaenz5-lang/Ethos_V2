@@ -28,7 +28,7 @@ export default async function RecentTransactions({ organizationId }: RecentTrans
     const allTransactions = [
         ...(recentIncome?.map(t => ({ ...t, type: 'income' as const })) || []),
         ...(recentExpenses?.map(t => ({ ...t, type: 'expense' as const })) || []),
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10)
+    ].sort((a, b) => new Date(b.date + 'T12:00:00').getTime() - new Date(a.date + 'T12:00:00').getTime()).slice(0, 10)
 
     return (
         <div className="bg-white shadow-lg rounded-xl overflow-hidden">
@@ -66,7 +66,7 @@ export default async function RecentTransactions({ organizationId }: RecentTrans
                             allTransactions.map((transaction) => (
                                 <tr key={`${transaction.type}-${transaction.id}`} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {format(new Date(transaction.date), 'dd/MM/yyyy', { locale: es })}
+                                        {format(new Date(transaction.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: es })}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${transaction.type === 'income'

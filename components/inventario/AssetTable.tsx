@@ -88,7 +88,7 @@ export default function AssetTable({
             return {
                 'Nombre': asset.name,
                 'Categoría': asset.category || '-',
-                'Fecha de Compra': format(new Date(asset.purchase_date || new Date()), 'dd/MM/yyyy', { locale: es }),
+                'Fecha de Compra': format(new Date((asset.purchase_date ? asset.purchase_date + 'T12:00:00' : null) || new Date()), 'dd/MM/yyyy', { locale: es }),
                 'Costo USD': asset.cost_usd || 0,
                 'Vida Útil (meses)': asset.useful_life_months || 0,
                 'Depreciación Mensual': asset.depreciation_monthly || 0,

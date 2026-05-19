@@ -160,7 +160,7 @@ export default function GlobalSearch() {
                                     {res.date && (
                                         <span className="flex items-center">
                                             <CalendarIcon className="h-3 w-3 mr-1" />
-                                            {format(new Date(res.date), 'dd/MM/yyyy')}
+                                            {format(new Date(res.date + 'T12:00:00'), 'dd/MM/yyyy')}
                                         </span>
                                     )}
                                     {res.amount !== undefined && (

@@ -83,7 +83,7 @@ export default function IncomeTable({ incomes, isLoading }: IncomeTableProps) {
                             incomes.map((income) => (
                                 <tr key={income.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {format(new Date(income.date), 'dd/MM/yyyy', { locale: es })}
+                                        {format(new Date(income.date + 'T12:00:00'), 'dd/MM/yyyy', { locale: es })}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         {income.receipt_number || '-'}
