@@ -57,7 +57,7 @@ CREATE POLICY "Users can delete documents" ON storage.objects FOR DELETE TO auth
 );
 -- 4. Crear tabla de documentos (Metadata)
 CREATE TABLE IF NOT EXISTS public.documents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
     title TEXT NOT NULL,
     description TEXT,

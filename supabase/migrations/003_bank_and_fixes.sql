@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS public.bank_accounts (
     account_number TEXT,                -- Opcional: últimos 4 dígitos
     bank_name TEXT,                     -- Ej: 'Mercantil'
     currency TEXT DEFAULT 'VES',        -- 'VES' o 'USD'
-    accounting_account_id UUID REFERENCES public.accounting_accounts(id) ON DELETE SET NULL, -- Vínculo con el Plan de Cuentas (UUID)
+    accounting_account_id UUID, -- Vínculo con el Plan de Cuentas (UUID) (FK added later)
     initial_balance DECIMAL(15,2) DEFAULT 0.00,
     current_balance DECIMAL(15,2) DEFAULT 0.00,
     created_at TIMESTAMPTZ DEFAULT NOW(),

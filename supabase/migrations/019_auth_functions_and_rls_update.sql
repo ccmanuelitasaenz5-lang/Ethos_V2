@@ -49,19 +49,19 @@ CREATE POLICY "Users can view bank accounts in their org"
   USING (organization_id = get_auth_org_id());
 
 -- Inventario / Activos
-DROP POLICY IF EXISTS "Users can view inventory in their org" ON inventory_items;
+DROP POLICY IF EXISTS "Users can view inventory in their org" ON assets;
 CREATE POLICY "Users can view inventory in their org"
-  ON inventory_items FOR SELECT
+  ON assets FOR SELECT
   USING (organization_id = get_auth_org_id());
 
-DROP POLICY IF EXISTS "Users can insert inventory in their org" ON inventory_items;
+DROP POLICY IF EXISTS "Users can insert inventory in their org" ON assets;
 CREATE POLICY "Users can insert inventory in their org"
-  ON inventory_items FOR INSERT
+  ON assets FOR INSERT
   WITH CHECK (organization_id = get_auth_org_id());
 
-DROP POLICY IF EXISTS "Users can update inventory in their org" ON inventory_items;
+DROP POLICY IF EXISTS "Users can update inventory in their org" ON assets;
 CREATE POLICY "Users can update inventory in their org"
-  ON inventory_items FOR UPDATE
+  ON assets FOR UPDATE
   USING (organization_id = get_auth_org_id());
 
 -- 3. Crear Vistas de Soft Delete (Lectura automática filtrada)
@@ -76,6 +76,7 @@ CREATE OR REPLACE VIEW active_expense AS
   WHERE deleted_at IS NULL;
 
 -- Activos (Inventario) Activos
+ALTER TABLE assets ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 CREATE OR REPLACE VIEW active_inventory AS
-  SELECT * FROM inventory_items
+  SELECT * FROM assets
   WHERE deleted_at IS NULL;

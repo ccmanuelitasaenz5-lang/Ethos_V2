@@ -12,14 +12,14 @@ SELECT
   p.id as property_id,
   p.organization_id,
   p.resident_user_id,
-  p.code as property_code,
+  p.number as property_code,
   COALESCE(SUM(i.amount_usd) FILTER (WHERE i.status = 'finalized' AND i.deleted_at IS NULL), 0) as total_paid_usd,
   -- Aquí se podría unir con una tabla de 'Cuentas por Cobrar' o 'Facturacion'
   -- Por ahora tomamos una deuda ficticia o calculada
   150.00 as current_balance_usd
 FROM properties p
 LEFT JOIN transactions_income i ON i.property_id = p.id
-GROUP BY p.id, p.organization_id, p.resident_user_id, p.code;
+GROUP BY p.id, p.organization_id, p.resident_user_id, p.number;
  
 -- 3. RLS para transacciones (el residente solo ve sus pagos)
 DROP POLICY IF EXISTS "Residents can view their own payments" ON transactions_income;

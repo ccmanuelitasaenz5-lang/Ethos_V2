@@ -131,9 +131,9 @@ export default function LibroDigitalPage() {
                 ) : (
                     <Tabs defaultValue="diario" className="w-full">
                         <TabsList className="bg-gray-100 p-1 rounded-xl mb-6 flex overflow-x-auto">
-                            <TabsTrigger value="diario" className="rounded-lg px-8 flex-1 sm:flex-none">Libro Diario</TabsTrigger>
-                            <TabsTrigger value="mayor"  className="rounded-lg px-8 flex-1 sm:flex-none">Libro Mayor</TabsTrigger>
-                            <TabsTrigger value="balance" className="rounded-lg px-8 flex-1 sm:flex-none">Balance Comprobación</TabsTrigger>
+                            <TabsTrigger value="diario" className="rounded-lg px-8 flex-1 sm:flex-none text-gray-600 data-[state=active]:text-primary-700 data-[state=active]:font-bold">Libro Diario</TabsTrigger>
+                            <TabsTrigger value="mayor"  className="rounded-lg px-8 flex-1 sm:flex-none text-gray-600 data-[state=active]:text-primary-700 data-[state=active]:font-bold">Libro Mayor</TabsTrigger>
+                            <TabsTrigger value="balance" className="rounded-lg px-8 flex-1 sm:flex-none text-gray-600 data-[state=active]:text-primary-700 data-[state=active]:font-bold">Balance Comprobación</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="diario" className="mt-0 focus-visible:ring-0">

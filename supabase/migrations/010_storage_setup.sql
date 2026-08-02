@@ -21,7 +21,7 @@ SET public = EXCLUDED.public,
     file_size_limit = EXCLUDED.file_size_limit,
     allowed_mime_types = EXCLUDED.allowed_mime_types;
 -- 2. Habilitar RLS en storage.objects (por seguridad, suele estar activo por defecto)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 -- 3. Eliminar políticas existentes para evitar conflictos
 DROP POLICY IF EXISTS "Allow authenticated users to upload files" ON storage.objects;
 DROP POLICY IF EXISTS "Allow users to view their organization files" ON storage.objects;
@@ -62,7 +62,7 @@ CREATE POLICY "Users can delete documents" ON storage.objects FOR DELETE TO auth
 );
 -- 5. Crear tabla de documentos si no existe (normalmente ya creada en migración anterior, pero aseguramos)
 CREATE TABLE IF NOT EXISTS public.documents (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE NOT NULL,
     title TEXT NOT NULL,
     description TEXT,

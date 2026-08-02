@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS exchange_rates (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   date        DATE NOT NULL UNIQUE,   -- Una tasa por día
   rate_usd_ves DECIMAL(12,4) NOT NULL,
   source      TEXT DEFAULT 'BCV',

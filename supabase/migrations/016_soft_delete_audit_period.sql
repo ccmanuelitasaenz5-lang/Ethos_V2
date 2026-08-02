@@ -13,7 +13,7 @@ ALTER TABLE transactions_expense
  
 -- 2. Tabla de períodos contables
 CREATE TABLE IF NOT EXISTS accounting_periods (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   year        INTEGER NOT NULL,
   month       INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
@@ -46,7 +46,7 @@ CREATE POLICY "Admins can manage periods"
  
 -- 3. Tabla de audit log
 CREATE TABLE IF NOT EXISTS audit_logs (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE,
   user_id       UUID REFERENCES users ON DELETE SET NULL,
   action        TEXT NOT NULL,   -- 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE'

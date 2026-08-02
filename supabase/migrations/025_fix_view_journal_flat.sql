@@ -1,4 +1,6 @@
 
+DROP VIEW IF EXISTS public.journal_entries;
+DROP VIEW IF EXISTS public.view_journal_flat;
 CREATE OR REPLACE VIEW public.view_journal_flat AS
 SELECT 
     e.id as entry_id,

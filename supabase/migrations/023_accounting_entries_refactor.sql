@@ -9,7 +9,7 @@ ALTER TABLE IF EXISTS public.journal_entries RENAME TO journal_entries_legacy;
 
 -- 2. Crear tabla maestra: accounting_entries
 CREATE TABLE public.accounting_entries (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
     date DATE NOT NULL,
     entry_number INTEGER NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE public.accounting_entries (
 
 -- 3. Crear tabla detalle: accounting_entry_items
 CREATE TABLE public.accounting_entry_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     entry_id UUID REFERENCES accounting_entries ON DELETE CASCADE NOT NULL,
     account_code TEXT NOT NULL,
     account_name TEXT NOT NULL,

@@ -11,7 +11,7 @@ ADD COLUMN IF NOT EXISTS digital_invoice_api_key TEXT;
 
 -- 2. Properties (Units / Apartamentos)
 CREATE TABLE IF NOT EXISTS properties (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   number TEXT NOT NULL, -- e.g. "D-23"
   owner_name TEXT,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS properties (
 -- 3. Chart of Accounts (VEN-NIF)
 -- 3. Chart of Accounts (VEN-NIF) -> Table name 'accounting_accounts' to match app actions
 CREATE TABLE IF NOT EXISTS accounting_accounts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   code TEXT NOT NULL,
   name TEXT NOT NULL,
@@ -41,13 +41,13 @@ CREATE TABLE IF NOT EXISTS accounting_accounts (
 
 -- 4. Inflation Indices (INPC)
 CREATE TABLE IF NOT EXISTS inflation_indices (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   year INTEGER NOT NULL,
   month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
   index_value DECIMAL(10,4) NOT NULL,
   is_estimated BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(year, month)
 );
 
@@ -58,7 +58,7 @@ CREATE POLICY "Admins can manage inflation indices" ON inflation_indices FOR ALL
 
 -- 5. Fiscal Events Log (Inalterable)
 CREATE TABLE IF NOT EXISTS fiscal_events_log (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES users ON DELETE SET NULL,
   event_type TEXT NOT NULL, -- 'INVOICE_GENERATED', 'REPORT_X', 'REPORT_Z'

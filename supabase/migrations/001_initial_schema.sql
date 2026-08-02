@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Organizaciones (condominios, comunidades)
 -- =====================================================
 CREATE TABLE organizations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   rif TEXT UNIQUE,
   address TEXT,
@@ -37,7 +37,7 @@ CREATE TABLE users (
 -- Registro de ingresos (recibos)
 -- =====================================================
 CREATE TABLE transactions_income (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   date DATE NOT NULL,
   receipt_number TEXT,
@@ -57,7 +57,7 @@ CREATE TABLE transactions_income (
 -- Registro de gastos (egresos)
 -- =====================================================
 CREATE TABLE transactions_expense (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   date DATE NOT NULL,
   invoice_number TEXT,
@@ -83,7 +83,7 @@ CREATE TABLE transactions_expense (
 -- Inventario de activos fijos
 -- =====================================================
 CREATE TABLE assets (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   category TEXT,
@@ -105,7 +105,7 @@ CREATE TABLE assets (
 -- Libro Diario y Libro Mayor (Partida Doble)
 -- =====================================================
 CREATE TABLE journal_entries (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   date DATE NOT NULL,
   entry_number INTEGER,
@@ -126,7 +126,7 @@ CREATE TABLE journal_entries (
 -- Expediente digital (documentos y archivos)
 -- =====================================================
 CREATE TABLE documents (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
