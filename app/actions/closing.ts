@@ -249,9 +249,21 @@ export async function getClosingReports(closingId: string) {
         return []
     }
 
-    // Add public URLs
-    return (data || []).map(report => ({
-        ...report,
-        publicUrl: supabase.storage.from('documents').getPublicUrl(report.file_path).data.publicUrl
-    }))
+    // El bucket 'documents' es PRIVADO (ver migración 020_documents_private_storage.sql),
+    // por lo que getPublicUrl() nunca funcionaba: generaba una URL que devolvía
+    // 400/403 al intentar descargarla. Se usa una URL firmada con expiración corta.
+    const reportsWithUrls = await Promise.all(
+        (data || []).map(async (report) => {
+            const { data: signedUrlData } = await supabase.storage
+                .from('documents')
+                .createSignedUrl(report.file_path, 60 * 10) // 10 minutos
+
+            return {
+                ...report,
+                publicUrl: signedUrlData?.signedUrl || null
+            }
+        })
+    )
+
+    return reportsWithUrls
 }

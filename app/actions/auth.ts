@@ -141,8 +141,17 @@ export async function signup(formData: FormData) {
             "Ya existe una organización con ese nombre. Por favor, elige otro nombre.",
         };
       }
+      // Limpiar el usuario de Auth huérfano: si no lo borramos, el email
+      // queda "ya registrado" para siempre sin una organización asociada,
+      // dejando al usuario sin poder ni completar el signup ni iniciar sesión
+      // correctamente (login exitoso pero sin datos -> app "rota").
+      try {
+        await adminSupabase.auth.admin.deleteUser(authData.user.id);
+      } catch (cleanupError) {
+        console.error("Error al limpiar usuario huérfano de Auth:", cleanupError);
+      }
       return {
-        error: `Error al crear la organización: ${orgError.message}. Si el problema persiste, contacta al soporte.`,
+        error: `Error al crear la organización: ${orgError.message}. Por favor, intenta registrarte nuevamente.`,
       };
     }
 
@@ -223,7 +232,7 @@ export async function resetPassword(formData: FormData) {
   const email = formData.get("email") as string;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
   });
 
   if (error) return { error: error.message };
@@ -231,13 +240,45 @@ export async function resetPassword(formData: FormData) {
 }
 
 export async function updatePassword(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const password = formData.get("password") as string;
+
+  if (!password) {
+    return { error: "La contraseña es obligatoria" };
+  }
+
+  // Misma política de fortaleza que en el registro, para consistencia
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.valid) {
+    return { error: passwordValidation.error };
+  }
+
+  // Debe existir una sesión de recuperación activa (viene de /auth/callback
+  // tras intercambiar el código del enlace del correo). Si no hay sesión,
+  // el enlace no se procesó correctamente o expiró.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error:
+        "Tu sesión de recuperación expiró o no es válida. Por favor solicita un nuevo enlace desde '¿Olvidaste tu contraseña?'.",
+    };
+  }
 
   const { error } = await supabase.auth.updateUser({
     password: password,
   });
 
-  if (error) return { error: error.message };
+  if (error) {
+    await logSecurityEvent("password_reset", "failure", {
+      userId: user.id,
+      metadata: { error: error.message },
+    });
+    return { error: error.message };
+  }
+
+  await logSecurityEvent("password_reset", "success", { userId: user.id });
   return { success: true };
 }

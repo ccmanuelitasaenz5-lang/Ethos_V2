@@ -45,10 +45,13 @@ export default function ResetPasswordPage() {
                                 name="password"
                                 type="password"
                                 required
-                                minLength={6}
+                                minLength={8}
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900"
                                 placeholder="••••••••"
                             />
+                            <p className="mt-1 text-xs text-gray-500">
+                                Mínimo 8 caracteres, con al menos una mayúscula, una minúscula y un número.
+                            </p>
                         </div>
                     </div>
 
