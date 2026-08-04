@@ -22,6 +22,17 @@ const fmtNum = (num: number) => num.toFixed(2)
 // For XML standard:
 const fmtDate = (d: Date) => format(d, 'dd/MM/yyyy')
 
+// Escapa caracteres especiales de XML. Sin esto, un RIF, número de factura o
+// nombre de proveedor que contenga '&', '<', '>', comillas, etc. genera un XML
+// mal formado que el importador de SENIAT rechaza directamente.
+const escapeXml = (value: string): string =>
+    String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;')
+
 export function generateISLRXml(data: any[], rifAgent: string, period: string) {
     // Structure based on common SENIAT ISLR XML schema
     // <RelacionRetencionesISLR RifAgente="J000000000" Periodo="202401">
@@ -36,8 +47,13 @@ export function generateISLRXml(data: any[], rifAgent: string, period: string) {
     //   </DetalleRetencion>
     // </RelacionRetencionesISLR>
 
-    let xml = `<?xml version="1.0" encoding="ISO-8859-1"?>\n`
-    xml += `<RelacionRetencionesISLR RifAgente="${rifAgent}" Periodo="${period}">\n`
+    // NOTA: se declara UTF-8 (no ISO-8859-1 como antes) porque el archivo se
+    // genera con `new Blob([xmlContent])` en components/reportes/FiscalReports.tsx,
+    // y la API Blob siempre codifica strings de JS como UTF-8. Declarar
+    // ISO-8859-1 sobre bytes UTF-8 reales causaba que nombres/RIF con tildes o
+    // ñ se leyeran mal (o el archivo fuera rechazado) al importarlo en SENIAT.
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`
+    xml += `<RelacionRetencionesISLR RifAgente="${escapeXml(rifAgent)}" Periodo="${escapeXml(period)}">\n`
 
     data.forEach(item => {
         // Safe defaults
@@ -50,11 +66,11 @@ export function generateISLRXml(data: any[], rifAgent: string, period: string) {
         const percent = item.retention_islr && base > 0 ? (item.retention_islr / base * 100) : 0
 
         xml += `\t<DetalleRetencion>\n`
-        xml += `\t\t<RifRetenido>${rifRetained}</RifRetenido>\n`
-        xml += `\t\t<NumeroFactura>${invoiceNumber}</NumeroFactura>\n`
-        xml += `\t\t<NumeroControl>${controlNumber}</NumeroControl>\n`
+        xml += `\t\t<RifRetenido>${escapeXml(rifRetained)}</RifRetenido>\n`
+        xml += `\t\t<NumeroFactura>${escapeXml(invoiceNumber)}</NumeroFactura>\n`
+        xml += `\t\t<NumeroControl>${escapeXml(controlNumber)}</NumeroControl>\n`
         xml += `\t\t<FechaOperacion>${fmtDate(date)}</FechaOperacion>\n`
-        xml += `\t\t<CodigoConcepto>${code}</CodigoConcepto>\n`
+        xml += `\t\t<CodigoConcepto>${escapeXml(code)}</CodigoConcepto>\n`
         xml += `\t\t<MontoOperacion>${fmtNum(base)}</MontoOperacion>\n`
         xml += `\t\t<PorcentajeRetencion>${fmtNum(percent)}</PorcentajeRetencion>\n`
         xml += `\t</DetalleRetencion>\n`

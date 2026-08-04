@@ -25,14 +25,21 @@ export default async function PortalPage() {
     .select('*')
     .eq('resident_user_id', user.id)
     .maybeSingle()
- 
-  // Obtener últimos pagos
-  const { data: payments } = await supabase
-    .from('transactions_income')
-    .select('*')
-    .eq('resident_user_id', user.id) // Necesitaremos esta columna o usar property_id
-    .order('date', { ascending: false })
-    .limit(5)
+
+  // Obtener últimos pagos: transactions_income NO tiene resident_user_id.
+  // El vínculo real es transactions_income.property_id -> properties.resident_user_id
+  // (ver migración 017_resident_portal.sql). Filtrar por una columna inexistente
+  // rompía el portal con un error de base de datos para todo residente.
+  let payments: any[] = []
+  if (summary?.property_id) {
+    const { data } = await supabase
+      .from('transactions_income')
+      .select('*')
+      .eq('property_id', summary.property_id)
+      .order('date', { ascending: false })
+      .limit(5)
+    payments = data || []
+  }
  
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
