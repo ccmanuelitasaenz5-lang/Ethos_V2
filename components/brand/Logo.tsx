@@ -20,9 +20,9 @@ export default function Logo({
                 <rect width="256" height="256" rx="60" fill="#136dec" />
 
                 <g transform="rotate(-45 128 128)">
-                    <path d="M80 80H176" stroke="white" stroke-width="20" stroke-linecap="round" />
-                    <path d="M80 128H144" stroke="white" stroke-width="20" stroke-linecap="round" />
-                    <path d="M80 176H176" stroke="white" stroke-width="20" stroke-linecap="round" />
+                    <path d="M80 80H176" stroke="white" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M80 128H144" stroke="white" strokeWidth="20" strokeLinecap="round" />
+                    <path d="M80 176H176" stroke="white" strokeWidth="20" strokeLinecap="round" />
 
                     <circle cx="176" cy="128" r="18" fill="#15803d" />
                 </g>

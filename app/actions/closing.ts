@@ -133,13 +133,29 @@ export async function checkAccountingBalance(period: string) {
     const startDate = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0]
     const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0]
 
-    // Sum debits and credits
-    const { data, error } = await supabase
-        .from('journal_entries')
-        .select('debit, credit')
+    // 1. Obtener los IDs de los asientos del periodo para esta organización
+    // (se separa en dos consultas porque el filtro embebido de PostgREST
+    // sobre la tabla relacionada no filtraba correctamente y devolvía 0 filas)
+    const { data: entries, error: entriesError } = await supabase
+        .from('accounting_entries')
+        .select('id')
         .eq('organization_id', userData.organization_id)
         .gte('date', startDate)
         .lte('date', endDate)
+
+    if (entriesError) return { error: entriesError.message }
+
+    const entryIds = (entries || []).map(e => e.id)
+
+    if (entryIds.length === 0) {
+        return { isBalanced: true, totalDebit: 0, totalCredit: 0, difference: 0 }
+    }
+
+    // 2. Sumar débitos y créditos de esos asientos
+    const { data, error } = await supabase
+        .from('accounting_entry_items')
+        .select('debit, credit')
+        .in('entry_id', entryIds)
 
     if (error) return { error: error.message }
 

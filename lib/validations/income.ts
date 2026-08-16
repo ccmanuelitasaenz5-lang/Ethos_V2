@@ -23,7 +23,7 @@ export const incomeSchema = z.object({
  
   status: z.enum(['draft','finalized','annulled']).default('draft'),
  
-  property_id: z.string().uuid().optional().nullable(),
+  property_id: z.string().uuid().optional().nullable().or(z.literal('')),
   account_code: z.string().min(1, 'La cuenta de ingreso es requerida'),
   bank_account: z.string().min(1, 'La cuenta de destino es requerida'),
 })

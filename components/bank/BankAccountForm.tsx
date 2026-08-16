@@ -17,14 +17,15 @@ export default function BankAccountForm({ accountingAccounts, onSuccess }: BankA
         setLoading(true)
         setError(null)
 
-        const formData = new FormData(e.currentTarget)
+        const form = e.currentTarget
+        const formData = new FormData(form)
         const result = await createBankAccount(formData)
 
         if (result?.error) {
             setError(result.error)
         } else {
             onSuccess()
-            e.currentTarget.reset()
+            form.reset()
         }
         setLoading(false)
     }

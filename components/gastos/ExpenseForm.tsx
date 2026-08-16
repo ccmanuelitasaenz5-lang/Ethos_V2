@@ -115,6 +115,7 @@ export default function ExpenseForm({ initialRate, accounts = [], initialData }:
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Fecha</label>
                     <input type="date" name="date" defaultValue={initialData?.date || new Date().toISOString().split('T')[0]} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" />
+                    <input type="hidden" name="iva_percentage" value={ivaPercentage} />
                     <FieldError name="date" />
                 </div>
  

@@ -18,7 +18,8 @@ export default function BankTransactionForm({ bankAccountId, onSuccess, onCancel
         setLoading(true)
         setError(null)
 
-        const formData = new FormData(e.currentTarget)
+        const form = e.currentTarget  // ← captura la referencia ANTES del await
+        const formData = new FormData(form)
         formData.append('bank_account_id', bankAccountId)
 
         // El monto debe ser negativo para egresos y comisiones
@@ -40,7 +41,7 @@ export default function BankTransactionForm({ bankAccountId, onSuccess, onCancel
             setError(result.error)
         } else {
             onSuccess()
-            e.currentTarget.reset()
+            form.reset()
         }
         setLoading(false)
     }
