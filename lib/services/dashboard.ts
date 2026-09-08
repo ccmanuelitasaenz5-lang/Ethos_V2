@@ -5,14 +5,18 @@ export const getDashboardStats = async (organizationId: string) => {
     const supabase = await createClient()
 
     const { data: incomeData } = await supabase
-      .from('transactions_income')
-      .select('amount_usd, amount_ves, date')
-      .eq('organization_id', organizationId)
+  .from('transactions_income')
+  .select('amount_usd, amount_ves, date')
+  .eq('organization_id', organizationId)
+  .eq('status', 'finalized')
+  .is('deleted_at', null)
     
     const { data: expenseData } = await supabase
-      .from('transactions_expense')
-      .select('amount_usd, amount_ves, date, category')
-      .eq('organization_id', organizationId)
+  .from('transactions_expense')
+  .select('amount_usd, amount_ves, date, category')
+  .eq('organization_id', organizationId)
+  .eq('status', 'finalized')
+  .is('deleted_at', null)
 
     const { data: bankAccounts } = await supabase
       .from('bank_accounts')
