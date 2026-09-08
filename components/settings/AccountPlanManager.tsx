@@ -163,7 +163,7 @@ export default function AccountPlanManager({ organizationId }: AccountPlanManage
 
       {/* Seccion de Gestión de Cuentas (Manual e Importación) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <AccountForm />
+        <AccountForm onSuccess={loadAccounts} />
         <AccountImport />
       </div>
 
