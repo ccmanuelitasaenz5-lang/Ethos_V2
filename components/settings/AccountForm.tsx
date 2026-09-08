@@ -5,21 +5,27 @@ import { createAccount, AccountType } from '@/app/actions/accounting'
 export default function AccountForm({ onSuccess }: { onSuccess?: () => void }) {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState('')
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         setLoading(true)
         setMessage('')
-        const formData = new FormData(e.currentTarget)
-        const result = await createAccount(formData)
-        if (result.error) {
-            setMessage(`Error: ${result.error}`)
-        } else {
-            setMessage('Cuenta creada con éxito')
-            e.currentTarget.reset()
-            onSuccess?.()
+        try {
+            const formData = new FormData(e.currentTarget)
+            const result = await createAccount(formData)
+            if (result.error) {
+                setMessage(`Error: ${result.error}`)
+            } else {
+                setMessage('Cuenta creada con éxito')
+                e.currentTarget.reset()
+                onSuccess?.()
+            }
+        } catch (err) {
+            console.error('Error inesperado al crear cuenta:', err)
+            setMessage('Error inesperado. Revisa la consola o inténtalo de nuevo.')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
-    }
+        }
     return (
         <form onSubmit={handleSubmit} className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
             <h3 className="text-sm font-bold text-gray-900 uppercase">Nueva Cuenta Manual</h3>
